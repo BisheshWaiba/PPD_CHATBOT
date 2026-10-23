@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MOM - Sign Up</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="login.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header -->
+    <header>
+      <div class="header-container">
+        <div class="logo">
+          <div class="logo-icon">
+            <i class="fas fa-heart"></i>
+          </div>
+          <div class="logo-text">MOM</div>
+          <span class="logo-tagline">Your Postpartum Care Companion</span>
+        </div>
+        <ul class="nav-links" style="margin-left: auto; margin-right: 20px">
+          <li><a href="./home.html">Home</a></li>
+        </ul>
+      </div>
+      <div class="header-bubbles">
+        <div
+          class="bubble"
+          style="width: 30px; height: 30px; left: 10%; animation-duration: 12s"
+        ></div>
+        <div
+          class="bubble"
+          style="
+            width: 20px;
+            height: 20px;
+            left: 20%;
+            animation-duration: 15s;
+            animation-delay: 2s;
+          "
+        ></div>
+        <div
+          class="bubble"
+          style="
+            width: 25px;
+            height: 25px;
+            left: 40%;
+            animation-duration: 18s;
+            animation-delay: 1s;
+          "
+        ></div>
+        <div
+          class="bubble"
+          style="
+            width: 35px;
+            height: 35px;
+            left: 65%;
+            animation-duration: 14s;
+            animation-delay: 3s;
+          "
+        ></div>
+        <div
+          class="bubble"
+          style="
+            width: 22px;
+            height: 22px;
+            left: 85%;
+            animation-duration: 16s;
+            animation-delay: 4s;
+          "
+        ></div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      <div class="auth-container">
+        <div class="auth-card signup-card">
+          <div class="auth-header">
+            <h2>Create an Account</h2>
+            <p>Join our supportive community of mothers</p>
+          </div>
+          <div class="auth-form-container">
+            <form id="signup-form" class="auth-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="firstName">First Name</label>
+                  <div class="input-with-icon">
+                    <i class="fas fa-user"></i>
+                    <input
+                      type="text"
+                      id="firstName"
+                      name="firstName"
+                      placeholder="Enter your first name"
+                      required
+                    />
+                  </div>
+                  <div class="error-message" id="firstName-error"></div>
+                </div>
+                <div class="form-group">
+                  <label for="lastName">Last Name</label>
+                  <div class="input-with-icon">
+                    <i class="fas fa-user"></i>
+                    <input
+                      type="text"
+                      id="lastName"
+                      name="lastName"
+                      placeholder="Enter your last name"
+                      required
+                    />
+                  </div>
+                  <div class="error-message" id="lastName-error"></div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="username">Username</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-at"></i>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="Choose a username"
+                    required
+                  />
+                </div>
+                <div class="error-message" id="username-error"></div>
+              </div>
+
+              <div class="form-group">
+                <label for="email">Email</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-envelope"></i>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                <div class="error-message" id="email-error"></div>
+              </div>
+
+              <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-lock"></i>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Create a password"
+                    required
+                  />
+                </div>
+                <div class="error-message" id="password-error"></div>
+                <div class="password-requirements">
+                  Password must be at least 8 characters with a number and
+                  special character
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-lock"></i>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    placeholder="Confirm your password"
+                    required
+                  />
+                </div>
+                <div class="error-message" id="confirmPassword-error"></div>
+              </div>
+
+              <div class="form-group">
+                <label for="phoneNumber">Phone Number (Optional)</label>
+                <div class="input-with-icon">
+                  <i class="fas fa-phone"></i>
+                  <input
+                    type="tel"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    placeholder="Enter your phone number"
+                  />
+                </div>
+              </div>
+
+              <!-- <div class="form-group">
+                            <label for="babyBirthDate">Baby's Birth Date (Optional)</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-calendar"></i>
+                                <input type="date" id="babyBirthDate" name="babyBirthDate">
+                            </div>
+                        </div>
+                         -->
+              <div class="form-terms">
+                <input type="checkbox" id="terms" name="terms" required />
+                <label for="terms"
+                  >I agree to the <a href="#">Terms of Service</a> and
+                  <a href="#">Privacy Policy</a></label
+                >
+              </div>
+
+              <div class="error-message" id="signup-error"></div>
+
+              <button type="submit" class="auth-button">
+                <span>Create Account</span>
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </form>
+          </div>
+          <div class="auth-footer">
+            <p>Already have an account? <a href="login.html">Sign In</a></p>
+          </div>
+        </div>
+        <div class="auth-info">
+          <div class="auth-info-content">
+            <h2>Begin Your Supported Motherhood Journey</h2>
+            <p>
+              Creating an account gives you access to personalized tools and
+              resources designed specifically for your postpartum needs.
+            </p>
+            <ul class="benefits-list">
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <span>Personalized recovery tracking</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <span>AI-powered care assistant</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <span>Expert resources library</span>
+              </li>
+              <li>
+                <i class="fas fa-check-circle"></i>
+                <span>Community support network</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-content">
+        <div class="footer-about">
+          <h3>MOM</h3>
+          <p>
+            We're dedicated to supporting new parents through their postpartum
+            journey with compassion, evidence-based information, and
+            personalized guidance.
+          </p>
+          <div class="social-links">
+            <a href="#" class="social-link" aria-label="Facebook"
+              ><i class="fab fa-facebook-f"></i
+            ></a>
+            <a href="#" class="social-link" aria-label="Twitter"
+              ><i class="fab fa-twitter"></i
+            ></a>
+            <a href="#" class="social-link" aria-label="Instagram"
+              ><i class="fab fa-instagram"></i
+            ></a>
+            <a href="#" class="social-link" aria-label="Pinterest"
+              ><i class="fab fa-pinterest-p"></i
+            ></a>
+          </div>
+        </div>
+        <div class="footer-newsletter">
+          <h4>Stay Updated</h4>
+          <p>
+            Subscribe to our newsletter to receive the latest postpartum care
+            tips and resources.
+          </p>
+          <form class="newsletter-form">
+            <input
+              type="email"
+              placeholder="Your email address"
+              aria-label="Email for newsletter"
+            />
+            <button type="submit" class="newsletter-btn">Subscribe</button>
+          </form>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>
+          &copy; 2025 MOM - Your Postpartum Care Companion. All rights reserved.
+        </p>
+      </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Redirect if already authenticated
+        redirectIfAuthenticated();
+
+        // Handle form submission
+        const signupForm = document.getElementById("signup-form");
+        const errorContainer = document.getElementById("signup-error");
+
+        if (signupForm) {
+          signupForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            // Clear previous errors
+            errorContainer.textContent = "";
+            errorContainer.style.display = "none";
+
+            // Get form inputs
+            const firstName = document.getElementById("firstName").value;
+            const lastName = document.getElementById("lastName").value;
+            const username = document.getElementById("username").value;
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const confirmPassword =
+              document.getElementById("confirmPassword").value;
+            const phoneNumber = document.getElementById("phoneNumber").value;
+            const terms = document.getElementById("terms").checked;
+
+            // Validate form
+            if (!firstName || !lastName || !email || !password) {
+              errorContainer.textContent = "Please fill in all required fields";
+              errorContainer.style.display = "block";
+              return;
+            }
+
+            if (password.length < 8) {
+              errorContainer.textContent =
+                "Password must be at least 8 characters";
+              errorContainer.style.display = "block";
+              return;
+            }
+
+            if (password !== confirmPassword) {
+              errorContainer.textContent = "Passwords do not match";
+              errorContainer.style.display = "block";
+              return;
+            }
+
+            if (!terms) {
+              errorContainer.textContent =
+                "You must agree to the Terms of Service";
+              errorContainer.style.display = "block";
+              return;
+            }
+
+            try {
+              // Show loading state
+              const submitButton = signupForm.querySelector(
+                'button[type="submit"]'
+              );
+              const originalButtonText = submitButton.innerHTML;
+              submitButton.disabled = true;
+              submitButton.innerHTML =
+                '<span>Creating Account...</span> <i class="fas fa-spinner fa-spin"></i>';
+
+              // Register user with API
+              const userData = {
+                firstName,
+                lastName,
+                username,
+                email,
+                password,
+                phoneNumber,
+              };
+
+              const response = await registerUser(userData);
+
+              if (response.token) {
+                // Store token and user information
+                localStorage.setItem("token", response.token);
+
+                // Create user data object
+                const user = {
+                  name: firstName + " " + lastName,
+                  email: email,
+                };
+                localStorage.setItem("user", JSON.stringify(user));
+
+                // Show success message
+                errorContainer.textContent =
+                  "Account created successfully! Redirecting...";
+                errorContainer.style.display = "block";
+                errorContainer.style.color = "green";
+
+                // Redirect to home page
+                setTimeout(() => {
+                  window.location.href = "/home.html";
+                }, 1000);
+              } else {
+                // Display error message
+                errorContainer.textContent =
+                  response.msg || "Registration failed. Please try again.";
+                errorContainer.style.display = "block";
+                errorContainer.style.color = "red";
+
+                // Reset button
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+              }
+            } catch (error) {
+              // Display error message
+              errorContainer.textContent =
+                "An error occurred. Please try again.";
+              errorContainer.style.display = "block";
+              errorContainer.style.color = "red";
+
+              // Reset button
+              submitButton.disabled = false;
+              submitButton.innerHTML = originalButtonText;
+            }
+          });
+        }
+
+        // Create header bubbles animation
+        createBubbles();
+      });
+
+      // Create header bubbles
+      function createBubbles() {
+        const headerBubbles = document.querySelector(".bubbles-container");
+        if (!headerBubbles) return;
+
+        for (let i = 0; i < 20; i++) {
+          const bubble = document.createElement("div");
+          bubble.classList.add("bubble");
+
+          // Random size
+          const size = Math.random() * 60 + 20;
+          bubble.style.width = `${size}px`;
+          bubble.style.height = `${size}px`;
+
+          // Random position
+          bubble.style.left = `${Math.random() * 100}%`;
+          bubble.style.top = `${Math.random() * 100}%`;
+
+          // Random animation delay and duration
+          bubble.style.animationDelay = `${Math.random() * 4}s`;
+          bubble.style.animationDuration = `${Math.random() * 12 + 8}s`;
+
+          headerBubbles.appendChild(bubble);
+        }
+      }
+    </script>
+  </body>
+</html>

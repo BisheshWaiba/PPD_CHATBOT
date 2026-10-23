@@ -1,0 +1,10 @@
+express
+dotenv
+cors
+uuid
+bcryptjs
+jsonwebtoken
+axios
+requests
+python-dotenv
+google-generativeai 

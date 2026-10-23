@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotional State Input Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .test-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        #chat-messages {
+            border: 1px solid #ccc;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 70%;
+            clear: both;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            float: right;
+            border-bottom-right-radius: 5px;
+        }
+        .bot-message {
+            background-color: #f0f0f0;
+            float: left;
+            border-bottom-left-radius: 5px;
+        }
+        .test-input {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .test-input input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+        }
+        .test-input button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .test-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .test-button {
+            padding: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            min-width: 40px;
+            text-align: center;
+        }
+        .test-result {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+        .success {
+            background-color: #E8F5E9;
+            color: #2E7D32;
+            font-weight: bold;
+        }
+        .failure {
+            background-color: #FFEBEE;
+            color: #C62828;
+            font-weight: bold;
+        }
+        .console {
+            background-color: #263238;
+            color: #ECEFF1;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .console-entry {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Emotional State Input Test</h1>
+    
+    <div class="test-container">
+        <h2>Test Environment</h2>
+        <div id="chat-messages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    <p>How have you been feeling emotionally since the birth?</p>
+                    <p>1. 😞 Sad or tearful</p>
+                    <p>2. 😰 Anxious or worried</p>
+                    <p>3. 🙂 Mostly okay</p>
+                    <p>4. 😐 Numb or empty</p>
+                    <p>5. 😡 Irritable or angry</p>
+                    <p>6. ❤️ Happy or excited</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-input">
+            <input type="text" id="direct-test-input" placeholder="Test an input...">
+            <button id="direct-test-button">Test</button>
+        </div>
+        
+        <div class="test-result" id="direct-test-result">
+            Results will appear here...
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Quick Tests</h2>
+        <div class="test-buttons">
+            <button class="test-button" data-value="1">1</button>
+            <button class="test-button" data-value="2">2</button>
+            <button class="test-button" data-value="3">3</button>
+            <button class="test-button" data-value="4">4</button>
+            <button class="test-button" data-value="5">5</button>
+            <button class="test-button" data-value="6">6</button>
+            <button class="test-button" data-value="sad">sad</button>
+            <button class="test-button" data-value="anxious">anxious</button>
+            <button class="test-button" data-value="okay">okay</button>
+            <button class="test-button" data-value="1. Sad">1. Sad</button>
+            <button class="test-button" data-value=" 1 "> 1 </button>
+        </div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Live Console</h2>
+        <div class="console" id="console-output">
+            <div class="console-entry">// Console log will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up the global test environment
+            window.conversationState = 'POSTPARTUM_EMOTIONAL_STATE';
+            
+            // Define our test function
+            window.testInput = function(input) {
+                console.log("Testing input: " + input);
+                addConsoleEntry("🧪 Testing input: " + input);
+                
+                // Test 1: Direct match test
+                if (input === "1" || input === "2" || input === "3" || 
+                    input === "4" || input === "5" || input === "6") {
+                    console.log("✅ PASSED: Direct number match");
+                    addConsoleEntry("✅ PASSED: Direct number match");
+                    return true;
+                }
+                
+                // Test 2: Clean and test numbers
+                const cleanedInput = input.trim();
+                if (cleanedInput === "1" || cleanedInput === "2" || cleanedInput === "3" ||
+                    cleanedInput === "4" || cleanedInput === "5" || cleanedInput === "6") {
+                    console.log("✅ PASSED: Trimmed number match");
+                    addConsoleEntry("✅ PASSED: Trimmed number match");
+                    return true;
+                }
+                
+                // Test 3: Parse as integer
+                try {
+                    const numValue = parseInt(input);
+                    if (!isNaN(numValue) && numValue >= 1 && numValue <= 6) {
+                        console.log("✅ PASSED: parseInt match for " + numValue);
+                        addConsoleEntry("✅ PASSED: parseInt match for " + numValue);
+                        return true;
+                    }
+                } catch (e) {
+                    console.log("❌ FAILED: parseInt error");
+                    addConsoleEntry("❌ FAILED: parseInt error");
+                }
+                
+                // Test 4: Extract first digit
+                const firstDigitMatch = input.match(/[1-6]/);
+                if (firstDigitMatch) {
+                    const digit = firstDigitMatch[0];
+                    console.log("✅ PASSED: First digit extraction found " + digit);
+                    addConsoleEntry("✅ PASSED: First digit extraction found " + digit);
+                    return true;
+                }
+                
+                // Test 5: Text patterns
+                if (/\bsad\b|\btearful\b/i.test(input)) {
+                    console.log("✅ PASSED: Sad/tearful text match");
+                    addConsoleEntry("✅ PASSED: Sad/tearful text match");
+                    return true;
+                }
+                
+                if (/\banxious\b|\bworried\b/i.test(input)) {
+                    console.log("✅ PASSED: Anxious/worried text match");
+                    addConsoleEntry("✅ PASSED: Anxious/worried text match");
+                    return true;
+                }
+                
+                // No match
+                console.log("❌ FAILED: All tests failed");
+                addConsoleEntry("❌ FAILED: All tests failed");
+                return false;
+            };
+            
+            // Set up the direct test button
+            document.getElementById('direct-test-button').addEventListener('click', function() {
+                const input = document.getElementById('direct-test-input').value;
+                const result = window.testInput(input);
+                
+                const resultElement = document.getElementById('direct-test-result');
+                resultElement.textContent = result ? 
+                    "✅ SUCCESS: Input would be recognized" : 
+                    "❌ FAILURE: Input would not be recognized";
+                resultElement.className = result ? "test-result success" : "test-result failure";
+            });
+            
+            // Set up the quick test buttons
+            document.querySelectorAll('.test-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const value = this.getAttribute('data-value');
+                    document.getElementById('direct-test-input').value = value;
+                    document.getElementById('direct-test-button').click();
+                });
+            });
+            
+            // Helper function to add console entries
+            function addConsoleEntry(text) {
+                const consoleOutput = document.getElementById('console-output');
+                const entry = document.createElement('div');
+                entry.className = 'console-entry';
+                entry.textContent = text;
+                consoleOutput.appendChild(entry);
+                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            }
+            
+            // Warm-up message
+            addConsoleEntry("🔧 Test environment ready!");
+        });
+    </script>
+</body>
+</html> 

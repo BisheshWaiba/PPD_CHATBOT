@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixed Chatbot Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        #chat-messages {
+            height: 400px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 70%;
+            clear: both;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            float: right;
+            border-bottom-right-radius: 5px;
+        }
+        .bot-message {
+            background-color: #f0f0f0;
+            float: left;
+            border-bottom-left-radius: 5px;
+        }
+        #chat-form {
+            display: flex;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #send-button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .control-panel {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border: 1px solid #b3e5fc;
+            border-radius: 4px;
+        }
+        .quick-buttons {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .quick-button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .test-buttons {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fff3e0;
+            border: 1px dashed #ff9800;
+            border-radius: 4px;
+        }
+        .test-buttons span {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .test-buttons button {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            margin: 2px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fixed Chatbot Test</h1>
+    
+    <div class="control-panel">
+        <h3>Quick Navigation</h3>
+        <button id="mental-state-button" class="quick-button">Jump to Mental State</button>
+        <button id="sleep-state-button" class="quick-button">Jump to Sleep Question</button>
+        <button id="physical-state-button" class="quick-button">Jump to Physical State</button>
+        <button id="support-needs-button" class="quick-button">Jump to Support Needs</button>
+        <button id="symptom-check-button" class="quick-button">Jump to Symptom Check</button>
+        <button id="reset-button" class="quick-button">Reset Chatbot</button>
+        <div>Current State: <strong id="state-display">Loading...</strong></div>
+    </div>
+    
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <form id="chat-form">
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button type="submit" id="send-button">Send</button>
+        </form>
+    </div>
+    
+    <div class="quick-buttons" id="number-buttons">
+        <button class="quick-button number-button" data-value="1">Send 1</button>
+        <button class="quick-button number-button" data-value="2">Send 2</button>
+        <button class="quick-button number-button" data-value="3">Send 3</button>
+        <button class="quick-button number-button" data-value="4">Send 4</button>
+        <button class="quick-button number-button" data-value="5">Send 5</button>
+        <button class="quick-button number-button" data-value="6">Send 6</button>
+        <button class="quick-button" id="send-symptoms">Send "symptoms"</button>
+    </div>
+    
+    <!-- Navigation buttons -->
+    <div class="nav-buttons">
+        <button id="greeting-button">Greeting</button>
+        <button id="age-button">Age Question</button>
+        <button id="birth-timing-button">Birth Timing</button>
+        <button id="mental-state-button">Mental State</button>
+        <button id="sleep-button">Sleep Question</button>
+        <button id="physical-state-button">Physical State</button>
+        <button id="support-needs-button">Support Needs</button>
+        <button id="user-led-button">Free Conversation</button>
+        <button id="symptom-check-button">Symptom Check</button>
+    </div>
+    
+    <!-- Symptom test buttons -->
+    <div class="test-buttons">
+        <span>Test Symptom Responses:</span>
+        <button id="test-symptom-1">Test Response 1</button>
+        <button id="test-symptom-2">Test Response 2</button>
+        <button id="test-symptom-3">Test Response 3</button>
+        <button id="test-symptom-4">Test Response 4</button>
+        <button id="test-symptom-5">Test Response 5</button>
+    </div>
+    
+    <script src="js/chatbot-client.js"></script>
+    <script>
+        // Special fix for direct emotional state input
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup state display
+            const stateDisplay = document.getElementById('state-display');
+            setInterval(() => {
+                if (stateDisplay) {
+                    stateDisplay.textContent = window.conversationState || 'Unknown';
+                }
+            }, 500);
+            
+            // Setup number buttons
+            document.querySelectorAll('.number-button').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Get the number value
+                    const value = this.getAttribute('data-value');
+                    
+                    // Put it in the input field
+                    const input = document.getElementById('message-input');
+                    input.value = value;
+                    
+                    // Directly submit the form
+                    const form = document.getElementById('chat-form');
+                    form.dispatchEvent(new Event('submit'));
+                });
+            });
+            
+            // Setup symptoms button
+            document.getElementById('send-symptoms').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Put "symptoms" in the input field
+                const input = document.getElementById('message-input');
+                input.value = "symptoms";
+                
+                // Directly submit the form
+                const form = document.getElementById('chat-form');
+                form.dispatchEvent(new Event('submit'));
+            });
+            
+            // Add a direct test button for symptoms 
+            document.getElementById('symptom-check-button').addEventListener('dblclick', function() {
+                console.log("🔄 Testing symptom response directly");
+                
+                // Clear messages
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';
+                
+                // Set state manually
+                window.conversationState = 'SYMPTOM_CHECK';
+                
+                // Test input "1" directly in the SYMPTOM_CHECK state
+                if (window.debugChatbot && window.debugChatbot.processUserMessage) {
+                    // First add the question
+                    const botMessage = document.createElement('div');
+                    botMessage.className = 'message bot-message';
+                    botMessage.innerHTML = '<div class="message-content">I can help you assess common postpartum symptoms. Which area would you like to check?<br><br>1. 😔 Emotional symptoms (mood, anxiety, etc.)<br><br>2. 💭 Mental symptoms (concentration, memory, etc.)<br><br>3. 💤 Sleep issues<br><br>4. 💪 Physical recovery concerns<br><br>5. 👥 Social or relationship changes</div>';
+                    chatMessages.appendChild(botMessage);
+                    
+                    // Then directly process a "1" message
+                    window.debugChatbot.processUserMessage("1");
+                } else {
+                    console.error("❌ Debug functions not available");
+                }
+            });
+            
+            // Setup navigation buttons
+            document.getElementById('mental-state-button').addEventListener('click', function() {
+                // Jump directly to mental state
+                window.conversationState = 'POSTPARTUM_MENTAL_STATE';
+                
+                // Add the mental state question
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';  // Clear existing messages
+                
+                // Add bot message
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot-message';
+                botMessage.innerHTML = '<div class="message-content">How have you been feeling mentally since the birth?<br><br>1. 🧠 Mentally exhausted<br><br>2. 🌫️ Foggy or distracted<br><br>3. 🧘 Clear and okay<br><br>4. 😫 Stressed or overwhelmed<br><br>5. 😌 Calm and focused</div>';
+                chatMessages.appendChild(botMessage);
+            });
+            
+            document.getElementById('sleep-state-button').addEventListener('click', function() {
+                // Jump directly to sleep state
+                window.conversationState = 'POSTPARTUM_SLEEP_STATE';
+                
+                // Add the sleep question
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';  // Clear existing messages
+                
+                // Add bot message
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot-message';
+                botMessage.innerHTML = '<div class="message-content">How have you been sleeping since the birth?<br><br>1. 😴 Very poorly<br><br>2. 😪 Interrupted frequently<br><br>3. 😌 Somewhat okay<br><br>4. 🛌 Getting enough rest<br><br>5. 💤 Surprisingly well</div>';
+                chatMessages.appendChild(botMessage);
+            });
+            
+            document.getElementById('physical-state-button').addEventListener('click', function() {
+                // Jump directly to physical state
+                window.conversationState = 'POSTPARTUM_PHYSICAL_STATE';
+                
+                // Add the physical state question
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';  // Clear existing messages
+                
+                // Add bot message
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot-message';
+                botMessage.innerHTML = '<div class="message-content">How have you been feeling physically since the birth?<br><br>1. 🤕 In pain or discomfort<br><br>2. 😴 Tired or exhausted<br><br>3. 💪 Recovering well<br><br>4. 🙁 Having complications<br><br>5. 😌 Back to normal</div>';
+                chatMessages.appendChild(botMessage);
+            });
+            
+            document.getElementById('support-needs-button').addEventListener('click', function() {
+                // Jump directly to support needs state
+                window.conversationState = 'POSTPARTUM_SUPPORT_NEEDS';
+                
+                // Add the support needs question
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';  // Clear existing messages
+                
+                // Add bot message
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot-message';
+                botMessage.innerHTML = '<div class="message-content">What kind of support would be most helpful to you right now?<br><br>1. 👩‍⚕️ Medical advice<br><br>2. 🧠 Mental health support<br><br>3. 👨‍👩‍👧 Family or relationship help<br><br>4. 🏠 Practical household support<br><br>5. 💬 Just someone to talk to</div>';
+                chatMessages.appendChild(botMessage);
+            });
+            
+            document.getElementById('symptom-check-button').addEventListener('click', function() {
+                // Jump directly to symptom check state using the debug function
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';  // Clear existing messages
+                
+                // Use the debug function to set the state and display the message
+                if (window.debugChatbot && typeof window.debugChatbot.setSymptomCheck === 'function') {
+                    window.debugChatbot.setSymptomCheck();
+                } else {
+                    // Fallback if the debug function is not available
+                    window.conversationState = 'SYMPTOM_CHECK';
+                    
+                    // Add bot message
+                    const botMessage = document.createElement('div');
+                    botMessage.className = 'message bot-message';
+                    botMessage.innerHTML = '<div class="message-content">I can help you assess common postpartum symptoms. Which area would you like to check?<br><br>1. 😔 Emotional symptoms (mood, anxiety, etc.)<br><br>2. 💭 Mental symptoms (concentration, memory, etc.)<br><br>3. 💤 Sleep issues<br><br>4. 💪 Physical recovery concerns<br><br>5. 👥 Social or relationship changes</div>';
+                    chatMessages.appendChild(botMessage);
+                }
+                
+                console.log("🔍 Current state after symptom button click:", window.conversationState);
+            });
+            
+            document.getElementById('reset-button').addEventListener('click', function() {
+                // Reset the chatbot
+                localStorage.removeItem('chatSessionId');
+                location.reload();
+            });
+            
+            // Add event handlers for symptom test buttons
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`test-symptom-${i}`).addEventListener('click', function() {
+                    console.log(`🧪 Testing symptom response ${i}`);
+                    
+                    // Clear existing messages first
+                    const chatMessages = document.getElementById('chat-messages');
+                    chatMessages.innerHTML = '';  // Clear existing messages
+                    
+                    // Use the debug function to set the state and test the response
+                    if (window.debugChatbot) {
+                        // First set the state to SYMPTOM_CHECK
+                        window.debugChatbot.setSymptomCheck();
+                        
+                        // Then test the response with the selected number
+                        setTimeout(() => {
+                            window.debugChatbot.testSymptomResponse(i);
+                        }, 1000);
+                    } else {
+                        console.error("❌ Debug chatbot functions not available");
+                    }
+                });
+            }
+            
+            // No need for the emotional state monkey patching since we've removed the emotional state question
+        });
+    </script>
+</body>
+</html> 

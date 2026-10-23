@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Chatbot Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        #chat-messages {
+            height: 400px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 70%;
+            clear: both;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            float: right;
+            border-bottom-right-radius: 5px;
+        }
+        .bot-message {
+            background-color: #f0f0f0;
+            float: left;
+            border-bottom-left-radius: 5px;
+        }
+        #chat-form {
+            display: flex;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #send-button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .control-panel {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border: 1px solid #b3e5fc;
+            border-radius: 4px;
+        }
+        .control-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .control-button {
+            padding: 8px 12px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .control-button:hover {
+            background-color: #0d8aee;
+        }
+        .info {
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Chatbot Test</h1>
+    
+    <div class="info">
+        <p><strong>Debug Mode:</strong> This page has enhanced debugging features to track the chatbot state and interactions.</p>
+    </div>
+    
+    <div class="control-panel">
+        <h2>Testing Controls</h2>
+        <p>Current State: <strong id="state-display">Loading...</strong></p>
+        <div class="control-buttons">
+            <button id="force-emotional-button" class="control-button">Force Emotional State</button>
+            <button id="force-mental-button" class="control-button">Force Mental State</button>
+            <button id="send-1-button" class="control-button">Send "1"</button>
+            <button id="send-2-button" class="control-button">Send "2"</button>
+            <button id="reset-button" class="control-button">Reset Chatbot</button>
+        </div>
+    </div>
+    
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <form id="chat-form">
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button type="submit" id="send-button">Send</button>
+        </form>
+    </div>
+    
+    <script>
+        // Global configuration
+        window.debugMode = true;
+    </script>
+    <script src="js/chatbot-client.js"></script>
+    <script src="js/debug-chatbot.js"></script>
+    <script>
+        // Initialize controller
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for everything to load
+            setTimeout(function() {
+                // Update state display
+                setInterval(function() {
+                    const stateDisplay = document.getElementById('state-display');
+                    if (stateDisplay) {
+                        stateDisplay.textContent = window.conversationState || 'UNKNOWN';
+                    }
+                }, 500);
+                
+                // Set up control buttons
+                document.getElementById('force-emotional-button').addEventListener('click', function() {
+                    window.conversationState = 'POSTPARTUM_EMOTIONAL_STATE';
+                    // Add placeholder message
+                    const messages = document.getElementById('chat-messages');
+                    if (messages) {
+                        const message = document.createElement('div');
+                        message.className = 'message bot-message';
+                        message.innerHTML = '<div class="message-content">How have you been feeling emotionally since the birth?<br>1. 😞 Sad or tearful<br>2. 😰 Anxious or worried<br>3. 🙂 Mostly okay<br>4. 😐 Numb or empty<br>5. 😡 Irritable or angry<br>6. ❤️ Happy or excited</div>';
+                        messages.appendChild(message);
+                        messages.scrollTop = messages.scrollHeight;
+                    }
+                    console.log("Forced emotional state:", window.conversationState);
+                });
+                
+                document.getElementById('force-mental-button').addEventListener('click', function() {
+                    window.conversationState = 'POSTPARTUM_MENTAL_STATE';
+                    // Add placeholder message
+                    const messages = document.getElementById('chat-messages');
+                    if (messages) {
+                        const message = document.createElement('div');
+                        message.className = 'message bot-message';
+                        message.innerHTML = '<div class="message-content">How have you been feeling mentally since the birth?<br>1. 🧠 Mentally exhausted<br>2. 🌫️ Foggy or distracted<br>3. 🧘 Clear and okay<br>4. 😫 Stressed or overwhelmed<br>5. 😌 Calm and focused</div>';
+                        messages.appendChild(message);
+                        messages.scrollTop = messages.scrollHeight;
+                    }
+                    console.log("Forced mental state:", window.conversationState);
+                });
+                
+                document.getElementById('send-1-button').addEventListener('click', function() {
+                    const inputField = document.getElementById('message-input');
+                    inputField.value = "1";
+                    document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+                });
+                
+                document.getElementById('send-2-button').addEventListener('click', function() {
+                    const inputField = document.getElementById('message-input');
+                    inputField.value = "2";
+                    document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+                });
+                
+                document.getElementById('reset-button').addEventListener('click', function() {
+                    window.conversationState = 'GREETING';
+                    localStorage.removeItem('chatSessionId');
+                    location.reload();
+                });
+                
+                console.log("Debug controller initialized");
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Why Sutkeri exists, what it does, and how it keeps new mothers safe: a postpartum companion with an EPDS screening in English and Nepali." />
+    <title>Sutkeri — About Us</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+      /* Buttons (same as Home) */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 56px;
+        padding: 0 28px;
+        border-radius: 999px;
+        font-size: 17px;
+        font-weight: 700;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .btn .icon {
+        stroke-width: 2.2;
+      }
+
+      .btn-primary {
+        background: var(--berry);
+        color: #FFFFFF;
+      }
+
+      .btn-primary:hover {
+        background: var(--berry-dark);
+      }
+
+      .btn-outline {
+        padding: 0 24px;
+        border: 2px solid var(--ink);
+        font-weight: 600;
+      }
+
+      .btn-outline:hover {
+        background: var(--ink);
+        color: var(--on-dark);
+      }
+
+      .btn-apricot {
+        background: var(--apricot);
+        color: var(--ink);
+      }
+
+      .btn-apricot:hover {
+        background: var(--apricot-light);
+      }
+
+      /* Hero */
+      .about-hero {
+        overflow: hidden;
+        padding: 48px 0 0;
+      }
+
+      .about-hero-inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 40px;
+      }
+
+      .about-hero-copy {
+        flex: 1 1 520px;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+        padding-bottom: 88px;
+      }
+
+      .about-hero h1 {
+        max-width: 760px;
+        font-size: clamp(40px, 5.4vw, 68px);
+        line-height: 1.02;
+        text-wrap: balance;
+      }
+
+      .about-tagline {
+        max-width: 580px;
+        font-size: 20px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 16px;
+        margin-top: 8px;
+      }
+
+      .about-arcs {
+        display: block;
+        flex: 0 1 480px;
+        width: 480px;
+        height: 240px;
+      }
+
+      /* Two-column rows: a title on the left, the substance on the right */
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        gap: 32px 64px;
+        align-items: start;
+      }
+
+      .split-head {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+      }
+
+      .split-head p {
+        max-width: 420px;
+        font-size: 18px;
+        line-height: 1.6;
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+
+      /* Why we built it */
+      .story {
+        background: var(--surface);
+        padding: 96px 0;
+      }
+
+      .prose {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .prose p {
+        max-width: 62ch;
+        font-size: 18px;
+        line-height: 1.65;
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+
+      .prose .lead {
+        font-family: var(--display);
+        font-size: clamp(22px, 2.3vw, 29px);
+        font-weight: 500;
+        letter-spacing: -0.015em;
+        line-height: 1.3;
+        color: var(--ink);
+        text-wrap: balance;
+      }
+
+      .mission {
+        margin-top: 72px;
+        padding-top: 72px;
+        border-top: 1px solid var(--line);
+      }
+
+      .mission-text {
+        max-width: 28em;
+        font-family: var(--display);
+        font-size: clamp(22px, 2.3vw, 29px);
+        font-weight: 500;
+        letter-spacing: -0.015em;
+        line-height: 1.3;
+        text-wrap: balance;
+      }
+
+      /* What you can do */
+      .what {
+        padding: 96px 0;
+      }
+
+      .ledger {
+        border-top: 1px solid var(--line);
+      }
+
+      .ledger li {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+        gap: 8px 32px;
+        padding: 28px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .ledger h3 {
+        font-size: 22px;
+        line-height: 1.2;
+      }
+
+      .ledger p {
+        font-size: 17px;
+        line-height: 1.6;
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+
+      /* Safe and honest */
+      .safe {
+        background: var(--surface);
+        padding: 96px 0;
+      }
+
+      .safe .section-head {
+        max-width: 640px;
+        margin-bottom: 56px;
+      }
+
+      .safe .section-head p {
+        font-size: 18px;
+        line-height: 1.6;
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+
+      .principles {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 64px;
+      }
+
+      .principle {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 32px 0 40px;
+        border-top: 1px solid var(--line);
+      }
+
+      .principle h3 {
+        font-size: 24px;
+        line-height: 1.15;
+      }
+
+      .principle p {
+        max-width: 52ch;
+        font-size: 17px;
+        line-height: 1.6;
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+
+      /* UN Sustainable Development Goals */
+      .goals {
+        padding: 96px 0;
+      }
+
+      .goals .section-head {
+        max-width: 720px;
+      }
+
+      .goals .section-head p {
+        font-size: 18px;
+        line-height: 1.6;
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+
+      .goal-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+        gap: 24px;
+      }
+
+      .goal-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 32px;
+        border-radius: 28px;
+        background: var(--surface);
+      }
+
+      /* The UN icons are used exactly as issued: square, uncropped, unrecoloured */
+      .goal-card img {
+        display: block;
+        width: 112px;
+        height: 112px;
+        margin-bottom: 8px;
+      }
+
+      .goal-tag {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .goal-card h3 {
+        font-size: 24px;
+        line-height: 1.15;
+      }
+
+      .goal-card p:last-child {
+        font-size: 16px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        text-wrap: pretty;
+      }
+
+      .goals-note {
+        max-width: 720px;
+        margin-top: 40px;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+
+      .goals-note a {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      /* Closing call to action */
+      .cta {
+        background: var(--surface);
+        padding: 96px 0;
+      }
+
+      .cta-card {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+        padding: 64px 56px;
+        border-radius: 40px;
+        background: var(--berry);
+        color: #FFFFFF;
+      }
+
+      .cta-card > :not(.deco) {
+        position: relative;
+      }
+
+      .cta-card h2 {
+        max-width: 560px;
+        font-size: clamp(34px, 4.4vw, 52px);
+        line-height: 1.08;
+        text-wrap: balance;
+      }
+
+      .cta-card p {
+        max-width: 480px;
+        font-size: 19px;
+        line-height: 1.55;
+      }
+
+      .deco {
+        position: absolute;
+        right: -40px;
+        bottom: -60px;
+        width: 380px;
+        height: 380px;
+      }
+
+      /* Responsive */
+      @media (max-width: 860px) {
+        .split {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .story,
+        .what,
+        .safe,
+        .goals,
+        .cta {
+          padding: 72px 0;
+        }
+
+        .mission {
+          margin-top: 56px;
+          padding-top: 56px;
+        }
+
+        .principles {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 700px) {
+        .about-arcs,
+        .deco {
+          display: none;
+        }
+
+        .about-hero-copy {
+          padding-bottom: 64px;
+        }
+      }
+
+      @media (max-width: 600px) {
+        .ledger li {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .goal-card {
+          padding: 24px;
+        }
+
+        .goal-card img {
+          width: 96px;
+          height: 96px;
+        }
+
+        .cta-card {
+          padding: 40px 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Shared icons -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <symbol id="mom-mark" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="18" fill="#B83A62"/>
+        <circle cx="18" cy="18" r="8.5" fill="none" stroke="#FCE3D0" stroke-width="3"/>
+        <circle cx="18" cy="18" r="2.8" fill="#FCE3D0"/>
+      </symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+    </svg>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="/" class="logo">
+          <svg class="logo-mark" aria-hidden="true"><use href="#mom-mark"/></svg>
+          <span class="logo-text">Sutkeri</span>
+        </a>
+
+        <nav class="nav-links" aria-label="Main">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/aboutus.html" class="nav-link active" aria-current="page">About</a>
+          <a href="/chat.html" class="nav-link">Assistant</a>
+          <div class="auth-buttons">
+            <a href="/login.html" class="login-btn">Log in</a>
+            <a href="/signup.html" class="signup-btn">Sign up</a>
+          </div>
+          <div class="profile-section">
+            <button type="button" class="profile-icon" aria-label="Account menu" aria-haspopup="true"></button>
+            <div class="profile-dropdown"></div>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="about-hero">
+        <div class="container about-hero-inner">
+          <div class="about-hero-copy">
+            <h1>No mother should feel alone in her postpartum journey.</h1>
+            <p class="about-tagline">Sutkeri is an AI companion that checks in on new mothers at any hour, offers a short screening in English or Nepali, and points the way to real help.</p>
+            <div class="cta-row">
+              <a href="/chat.html" class="btn btn-primary">
+                Start a check-in
+                <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+              </a>
+              <a href="#what" class="btn btn-outline">What Sutkeri does</a>
+            </div>
+          </div>
+          <svg class="about-arcs" viewBox="0 0 480 240" aria-hidden="true">
+            <circle cx="240" cy="240" r="240" fill="#FCE3D0"/>
+            <circle cx="240" cy="240" r="180" fill="#F4B98E"/>
+            <circle cx="240" cy="240" r="120" fill="#E88BA3"/>
+            <circle cx="240" cy="240" r="60" fill="#B83A62"/>
+          </svg>
+        </div>
+      </section>
+
+      <section class="story" id="story">
+        <div class="container">
+          <div class="split">
+            <h2 class="section-title">Why we built Sutkeri</h2>
+            <div class="prose">
+              <p class="lead">The weeks after a baby arrives are full of questions, and a mother's own health is often the last thing anyone asks about.</p>
+              <p>Postpartum depression is common, and many mothers never talk about it. A short screening can help her see how she is really doing and decide whether to speak with a doctor. But it has to be easy to reach, open at any hour, and available in a language she is comfortable in.</p>
+              <p>Sutkeri is that first step. It asks gentle questions one at a time, explains what the answers mean in plain words, and points to real help when it is needed. It does not diagnose, and it does not replace a doctor, a midwife or a health worker.</p>
+            </div>
+          </div>
+          <div class="split mission">
+            <h2 class="section-title">Our mission</h2>
+            <p class="mission-text">To empower every mother with the knowledge, support, and confidence she needs to thrive during her postpartum journey, creating a world where no mother feels alone or unprepared.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="what" id="what">
+        <div class="container">
+          <div class="split">
+            <div class="split-head">
+              <h2 class="section-title">What you can do with Sutkeri</h2>
+              <p>Everything starts with a conversation. Sign in, and the assistant takes it from there.</p>
+            </div>
+            <ul class="ledger">
+              <li>
+                <h3>Talk it through</h3>
+                <p>Ask what postpartum depression is, what causes it and what the signs look like, or ask for practical self-care tips. Sutkeri answers one step at a time.</p>
+              </li>
+              <li>
+                <h3>Take a short screening</h3>
+                <p>Answer the 10 questions of the Edinburgh Postnatal Depression Scale (EPDS) in English or Nepali, and get a score with plain-language guidance.</p>
+              </li>
+              <li>
+                <h3>Bring a report to your doctor</h3>
+                <p>Your results page shows your score, your answers and what to do next, and you can print it for your appointment.</p>
+              </li>
+              <li>
+                <h3>Find help right away</h3>
+                <p>Nepal's crisis and mental health helplines are listed in the chat and on your results page, including 1166, which is free from Nepal Telecom.</p>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="safe" id="safe">
+        <div class="container">
+          <div class="section-head">
+            <h2 class="section-title">How we keep it safe and honest</h2>
+            <p>A mother using Sutkeri may be tired, worried or low. These are the rules we hold the product to.</p>
+          </div>
+          <div class="principles">
+            <div class="principle">
+              <h3>A screening, not a diagnosis</h3>
+              <p>The EPDS is a widely used questionnaire that helps start a conversation with a health professional. Sutkeri never gives a diagnosis, and what it says is not a substitute for medical care.</p>
+            </div>
+            <div class="principle">
+              <h3>Help is never hidden</h3>
+              <p>If an answer suggests a mother may be thinking of harming herself, Sutkeri says so plainly and points to crisis helplines straight away. Crisis numbers are also on the home page.</p>
+            </div>
+            <div class="principle">
+              <h3>Your information, plainly</h3>
+              <p>Your screening answers are saved only in your own browser and cleared when you log out. Your password is never stored in readable form.</p>
+            </div>
+            <div class="principle">
+              <h3>Gentle by design</h3>
+              <p>One question at a time, in plain words. You can stop whenever you need to.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="goals" id="goals">
+        <div class="container">
+          <div class="section-head">
+            <h2 class="section-title">Goals we work toward</h2>
+            <p>Three of the United Nations Sustainable Development Goals guide what we build. Here is what each one means for a mother using Sutkeri.</p>
+          </div>
+          <div class="goal-grid">
+            <article class="goal-card">
+              <img src="/images/Sustainable_Development_Goal_03GoodHealth.svg.png" alt="UN Sustainable Development Goal 3: Good Health and Well-being" width="112" height="112" loading="lazy" decoding="async">
+              <p class="goal-tag">Goal 3</p>
+              <h3>A first step toward care</h3>
+              <p>Postpartum depression is common and often goes unspoken. Sutkeri offers the 10-question EPDS screening, explains the score in plain language, and lists Nepal helplines, so a mother knows when to reach out for care.</p>
+            </article>
+            <article class="goal-card">
+              <img src="/images/Sustainable_Development_Goal_05GenderEquality.svg.png" alt="UN Sustainable Development Goal 5: Gender Equality" width="112" height="112" loading="lazy" decoding="async">
+              <p class="goal-tag">Goal 5</p>
+              <h3>Her wellbeing comes first</h3>
+              <p>New mothers often carry a baby's care alone while their own health waits. Sutkeri asks how she is doing, not only how the baby is, and it is built for partners and family to use alongside her.</p>
+            </article>
+            <article class="goal-card">
+              <img src="/images/E_SDG_goals_icons-individual-rgb-10.png" alt="UN Sustainable Development Goal 10: Reduced Inequalities" width="112" height="112" loading="lazy" decoding="async">
+              <p class="goal-tag">Goal 10</p>
+              <h3>Support that is easy to reach</h3>
+              <p>Where you live and the language you speak should not decide whether you get support. Sutkeri works in a web browser on a phone or a computer, offers the screening in Nepali and English, and points to Nepal-specific helplines.</p>
+            </article>
+          </div>
+          <p class="goals-note">The content of this page has not been approved by the United Nations and does not reflect the views of the United Nations or its officials or Member States. Learn more about <a href="https://sdgs.un.org/goals" target="_blank" rel="noopener noreferrer">the Sustainable Development Goals</a>.</p>
+        </div>
+      </section>
+
+      <section class="cta">
+        <div class="container">
+          <div class="cta-card">
+            <svg class="deco" viewBox="0 0 380 380" aria-hidden="true">
+              <circle cx="300" cy="320" r="300" fill="#C24E74"/>
+              <circle cx="300" cy="320" r="220" fill="#E88BA3"/>
+              <circle cx="300" cy="320" r="140" fill="#F4B98E"/>
+              <circle cx="300" cy="320" r="70" fill="#FCE3D0"/>
+            </svg>
+            <h2>Start your first check-in.</h2>
+            <p>Take your time. There are no wrong answers, and you can stop whenever you need to.</p>
+            <a href="/chat.html" class="btn btn-apricot">
+              Start a check-in
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-top">
+          <div class="footer-about">
+            <a href="/" class="logo">
+              <svg class="logo-mark" aria-hidden="true"><use href="#mom-mark"/></svg>
+              <span class="logo-text">Sutkeri</span>
+            </a>
+            <p>Supporting new parents through the postpartum journey with compassion, evidence-based information and personalized guidance.</p>
+          </div>
+          <div class="footer-links">
+            <h4>Explore</h4>
+            <ul>
+              <li><a href="/">Home</a></li>
+              <li><a href="/aboutus.html">About</a></li>
+              <li><a href="/login.html">Log in</a></li>
+              <li><a href="/signup.html">Sign up</a></li>
+            </ul>
+          </div>
+          <div class="footer-newsletter">
+            <h4>Stay updated</h4>
+            <p>News and updates about maternal health and wellness.</p>
+            <form class="newsletter-form" onsubmit="return false;">
+              <label for="newsletter-email" class="sr-only">Email address</label>
+              <input id="newsletter-email" type="email" placeholder="Your email address" required>
+              <button type="submit">Subscribe</button>
+            </form>
+          </div>
+        </div>
+        <div class="footer-copyright">
+          <span>&copy; 2026 Sutkeri, your postpartum care companion.</span>
+          <span>Sutkeri is not a substitute for professional medical advice.</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/js/auth.js"></script>
+  </body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #chat-messages {
+            border: 1px solid #ccc;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 70%;
+            clear: both;
+        }
+        .user-message {
+            background-color: #e3f2fd;
+            float: right;
+            border-bottom-right-radius: 5px;
+        }
+        .bot-message {
+            background-color: #f0f0f0;
+            float: left;
+            border-bottom-left-radius: 5px;
+        }
+        #chat-form {
+            display: flex;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #send-button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            border-top-color: #333;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Debug buttons */
+        #debug-panel {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .debug-button {
+            margin: 5px;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .debug-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <h2>Chatbot Test</h2>
+        <div id="chat-messages"></div>
+        <form id="chat-form">
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button type="submit" id="send-button">Send</button>
+        </form>
+    </div>
+    
+    <!-- Debug Panel -->
+    <div id="debug-panel">
+        <h3>Debug Tools</h3>
+        <div>
+            <p>Current conversation state: <span id="current-state">GREETING</span></p>
+        </div>
+        <div>
+            <button class="debug-button" id="btn-1">Send "1"</button>
+            <button class="debug-button" id="btn-2">Send "2"</button>
+            <button class="debug-button" id="btn-3">Send "3"</button>
+            <button class="debug-button" id="btn-4">Send "4"</button>
+            <button class="debug-button" id="btn-5">Send "5"</button>
+            <button class="debug-button" id="btn-6">Send "6"</button>
+        </div>
+        <div>
+            <button class="debug-button" id="btn-sad">Send "sad"</button>
+            <button class="debug-button" id="btn-anxious">Send "anxious"</button>
+            <button class="debug-button" id="btn-reset">Reset Chat</button>
+        </div>
+    </div>
+
+    <script>
+        // Debug functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup debug buttons
+            document.getElementById('btn-1').addEventListener('click', function() {
+                sendDebugMessage("1");
+            });
+            document.getElementById('btn-2').addEventListener('click', function() {
+                sendDebugMessage("2");
+            });
+            document.getElementById('btn-3').addEventListener('click', function() {
+                sendDebugMessage("3");
+            });
+            document.getElementById('btn-4').addEventListener('click', function() {
+                sendDebugMessage("4");
+            });
+            document.getElementById('btn-5').addEventListener('click', function() {
+                sendDebugMessage("5");
+            });
+            document.getElementById('btn-6').addEventListener('click', function() {
+                sendDebugMessage("6");
+            });
+            document.getElementById('btn-sad').addEventListener('click', function() {
+                sendDebugMessage("sad");
+            });
+            document.getElementById('btn-anxious').addEventListener('click', function() {
+                sendDebugMessage("anxious");
+            });
+            document.getElementById('btn-reset').addEventListener('click', function() {
+                // Reset the chat
+                localStorage.removeItem('chatSessionId');
+                location.reload();
+            });
+            
+            function sendDebugMessage(message) {
+                console.log("Debug button sending message:", message);
+                const inputField = document.getElementById('message-input');
+                inputField.value = message;
+                
+                // Create and dispatch submit event
+                const submitEvent = new Event('submit');
+                document.getElementById('chat-form').dispatchEvent(submitEvent);
+            }
+            
+            // Monkey patch the chatbot to expose its state
+            const originalInit = window.initializeChat;
+            if (originalInit) {
+                window.initializeChat = function() {
+                    originalInit.apply(this, arguments);
+                    // Expose conversation state
+                    setInterval(function() {
+                        if (window.conversationState) {
+                            document.getElementById('current-state').textContent = window.conversationState;
+                        }
+                    }, 500);
+                };
+            }
+        });
+    </script>
+
+    <script src="js/chatbot-client.js"></script>
+</body>
+</html> 
