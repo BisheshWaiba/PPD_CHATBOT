@@ -6,11 +6,32 @@ import { v4 as uuidv4 } from 'uuid';
 import { spawn } from 'child_process';
 import { protect } from '../middleware/auth.js';
 import { sessionKey } from '../util/chatSession.js';
+import { validateChatMessage } from '../util/validation.js';
+import { RateLimiter } from '../util/rateLimit.js';
 
 const router = express.Router();
 
 // These routes start the Python chatbot, so only signed-in users may call them
 router.use(protect);
+
+// Every greeting and message starts a Python process, so each account gets a per-minute
+// allowance. Only requests that would start the chatbot count. Tests lower it with CHAT_RATE_LIMIT.
+const chatByUser = new RateLimiter({
+    max: Number(process.env.CHAT_RATE_LIMIT) || 30,
+    windowMs: 60 * 1000
+});
+
+const fail = (res, status, message) => res.status(status).json({ success: false, message });
+
+// True (after answering 429) when the account has used up its allowance
+function overLimit(req, res) {
+    const limit = chatByUser.check(req.user.id);
+    if (!limit.limited) return false;
+    const seconds = Math.max(1, limit.retryAfterSeconds);
+    res.set('Retry-After', String(seconds));
+    fail(res, 429, `Too many messages. Please try again in ${seconds} second${seconds === 1 ? '' : 's'}.`);
+    return true;
+}
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -32,6 +53,9 @@ function getSessionFilePath(sessionId) {
 
 // Route to get initial greeting
 router.get('/greeting', async (req, res) => {
+    if (overLimit(req, res)) return;
+    chatByUser.hit(req.user.id);
+
     try {
         const sessionId = uuidv4();
         console.log(`Generated new session ID for greeting: ${sessionId}`);
@@ -119,6 +143,12 @@ router.get('/greeting', async (req, res) => {
 
 // Route to handle chat messages
 router.post('/message', async (req, res) => {
+    // Turn bad input away before anything starts. Rejected messages do not use up the allowance.
+    if (overLimit(req, res)) return;
+    const problem = validateChatMessage(req.body?.message);
+    if (problem) return fail(res, 400, problem);
+    chatByUser.hit(req.user.id);
+
     try {
         const { message } = req.body;
         let sessionId = req.headers['x-session-id'];

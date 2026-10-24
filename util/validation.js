@@ -1,4 +1,4 @@
-// Shared rules for sign-up and sign-in. The browser forms apply the same limits.
+// Shared rules for sign-up, sign-in and chat messages. The browser forms apply the same limits.
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export const PASSWORD_MIN = 8;
@@ -6,6 +6,9 @@ export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX_BYTES = 72;
 export const NAME_MAX = 50;
 export const EMAIL_MAX = 254;
+// Long enough to describe how someone feels in detail. Every message starts a Python process,
+// so it must not be unlimited.
+export const CHAT_MESSAGE_MAX = 1000;
 
 export const normalizeEmail = value => String(value).trim().toLowerCase();
 
@@ -13,6 +16,12 @@ export function validateEmail(value) {
   if (typeof value !== 'string' || !value.trim()) return 'Please provide an email address';
   const email = value.trim();
   if (email.length > EMAIL_MAX || !EMAIL_RE.test(email)) return 'Please provide a valid email address';
+  return null;
+}
+
+export function validateChatMessage(message) {
+  if (typeof message !== 'string' || !message.trim()) return 'Please write a message';
+  if (message.length > CHAT_MESSAGE_MAX) return `Message cannot be more than ${CHAT_MESSAGE_MAX} characters`;
   return null;
 }
 

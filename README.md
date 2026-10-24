@@ -57,7 +57,11 @@ Open http://localhost:8004. If MongoDB is not reachable in development, accounts
 | POST | `/api/auth/register` | Public | `{ name, email, password }`. 201, 400 invalid, 409 email taken |
 | POST | `/api/auth/login` | Public | `{ email, password }`. 200 with `token` and `user`, 401 for a wrong email or password |
 | GET | `/api/auth/me` | Bearer token | The signed-in user. 401 if the token is missing, expired or invalid |
-| GET/POST | `/api/chatbot/*` | Bearer token | Python chatbot |
+| GET | `/api/chatbot/greeting` | Bearer token | Starts a chat. Returns `sessionId` and the greeting |
+| POST | `/api/chatbot/message` | Bearer token | `{ message }` with the `x-session-id` header. 400 if the message is missing, blank or over 1000 characters. 429 past 30 requests a minute per account |
+
+Chat sessions belong to the account that opened them: another account sending the same session
+id gets its own conversation. Change the request limit with `CHAT_RATE_LIMIT`.
 
 ```bash
 curl -X POST http://localhost:8004/api/auth/register \
