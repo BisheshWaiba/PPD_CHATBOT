@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import { spawn } from 'child_process';
 import { protect } from '../middleware/auth.js';
+import { sessionKey } from '../util/chatSession.js';
 
 const router = express.Router();
 
@@ -49,7 +50,7 @@ router.get('/greeting', async (req, res) => {
                     const pythonProcess = spawn('python', [
                         pythonScript,
                         '--first-run',
-                        '--user', sessionId
+                        '--user', sessionKey(req.user.id, sessionId)
                     ]);
                     
                     // Collect output
@@ -140,8 +141,12 @@ router.post('/message', async (req, res) => {
                 const pythonScript = path.join(__dirname, '..', 'chatbot', 'chatbot.py');
                 console.log(`Python script path: ${pythonScript}`);
                 
+                // The chatbot's state and the message file are keyed by account + session,
+                // so one account can never read or move another account's conversation
+                const chatKey = sessionKey(req.user.id, sessionId);
+
                 // Save message to temporary file
-                const messageFile = path.join(TEMP_DIR, `message_${sessionId}.txt`);
+                const messageFile = path.join(TEMP_DIR, `message_${chatKey}.txt`);
                 fs.writeFileSync(messageFile, message, 'utf8');
                 console.log(`Saved message to file: ${messageFile}`);
                 
@@ -159,7 +164,7 @@ router.post('/message', async (req, res) => {
                     // Build command with arguments for logging
                     const args = [
                         pythonScript,
-                        '--user', sessionId,
+                        '--user', chatKey,
                         '--message-file', messageFile
                     ];
                     console.log(`Command: python ${args.join(' ')}`);
