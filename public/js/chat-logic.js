@@ -561,6 +561,23 @@ const OFFTOPIC_EN = "I'm sorry, I can't help with that. I'm here only for postpa
 const OFFTOPIC_NE = 'माफ गर्नुहोस्, म त्यसमा सहयोग गर्न सक्दिन। म प्रसवपछिको कल्याणको लागि मात्र यहाँ छु: तपाईंले कस्तो महसुस गरिरहनुभएको छ, EPDS जाँच, र सहयोग कहाँ पाउने।';
 
 /** Replies for the topics that do not need any conversation state. Returns null when the caller should handle it. */
+/**
+ * Which messages the open conversation hands to the AI model instead of a fixed reply.
+ *
+ * The AI takes what is conversation: greetings, thanks, goodbyes, how someone feels, questions
+ * about the baby and family, and anything off topic (which it declines kindly). Everything that
+ * has a reviewed answer or a safety reply stays with the fixed replies: the check-in and symptom
+ * check, the helplines, the printable report, the five information topics, urgent physical
+ * symptoms and medicines. Crisis messages are never given to the AI by this page at all.
+ *
+ * Once the AI has just spoken, a short "yes", "no" or a number is an answer to what the AI asked,
+ * not a menu choice, so those go to it as well.
+ */
+export function wantsAssistant(kind, { afterAssistant = false } = {}) {
+  if (['greeting', 'thanks', 'bye', 'feelings', 'related_other', 'offtopic'].includes(kind)) return true;
+  return afterAssistant && ['yes', 'no', 'menu_1', 'menu_2', 'menu_3', 'menu_4', 'menu_5'].includes(kind);
+}
+
 export function replyFor(kind, language = 'english') {
   const ne = language === 'nepali';
   const menu = ne ? MENU_NE : MENU_EN;

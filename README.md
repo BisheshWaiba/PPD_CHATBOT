@@ -129,6 +129,64 @@ curl http://localhost:8004/api/v1/auth/me -H "Authorization: Bearer YOUR_TOKEN_H
 - **Old design:** screenshots of the earlier pink "MOM" design are in `docs/old-ui-screenshots/`.
   They are reference only and are not served.
 
+## AI conversation (optional)
+
+Out of the box the chat answers with fixed, reviewed replies. Add an Anthropic API key and the
+open conversation becomes a real conversation: it remembers what you told it, answers in natural
+language, asks one gentle question at a time, and does not end every reply with a menu.
+
+**Turn it on**
+
+1. Get a key at https://console.anthropic.com and put it in `.env`: `ANTHROPIC_API_KEY=sk-ant-...`
+2. Run `npm run check:assistant`. It asks Claude one question and prints the answer, the tokens and
+   the cost, so you know the key works before anyone chats.
+3. Restart the server. The chat's welcome message now says that an AI writes the replies.
+
+To turn it off, remove the key. Nothing else changes.
+
+**What the AI answers, and what it never does.** The AI takes conversation: greetings, how someone
+feels, questions about the baby and family, thanks, and off-topic questions (which it declines
+kindly). Everything with a reviewed answer or a safety reply stays fixed: the guided steps (age,
+birth date), the questionnaire and its scoring, the symptom check, the helplines, the printable
+report, the five information topics, urgent physical symptoms, and medicines. A short "yes", "no"
+or number right after the AI spoke goes back to the AI, because it answers the AI's question.
+
+**Safety, in layers.**
+
+1. A crisis message (thoughts of self-harm or of harming the baby, in English or Nepali) is
+   answered by the fixed crisis reply with the helplines, in code, before and without the AI. It
+   works even when no key is set, and it is never held back by a limit.
+2. The AI is told never to diagnose, never to advise on medicines or interpret symptoms, to send
+   urgent symptoms to a hospital, to stay on topic, to ignore instructions hidden in the
+   conversation, and to give only the helpline numbers it was given.
+3. Every reply is checked before anyone sees it. Markup is removed, it is shown as plain text only,
+   and a reply containing a phone number that is not one of our helplines is thrown away.
+4. If anything goes wrong (no key, a bad key, no credit, Anthropic down, too slow, the model
+   declines, an unsafe reply) the chat quietly uses its fixed reply instead, and leaves the AI alone
+   for a minute. Nothing the person wrote ever appears in a log or an error message.
+5. Each account has an allowance (12 AI replies a minute, 150 a day by default) so a script cannot
+   run up your bill. Also set a monthly spend limit in the Anthropic console.
+
+**What is sent to Anthropic.** Only the text of the latest messages of the chat (up to 16, each cut
+to 3000 characters), to write one reply. Never a name, an email, an account id or anything else
+about the account. People are told this in the welcome message and asked not to share their full
+name, phone number or address. Messages that stay with the fixed replies (the check-in, the menu,
+the information topics) are not sent on their own, but they can appear as earlier context when a
+later free message is. Check Anthropic's current data-retention and privacy terms for your account,
+and mention the AI service in your own privacy notice if you publish this.
+
+**Cost.** Every AI reply is one API call. On the default model (`claude-opus-5-5`, $4 per million
+input tokens and $20 per million output) a reply costs roughly 1 to 2 cents, more in a long chat.
+`ASSISTANT_MODEL=claude-sonnet-5-5` costs about half that and `claude-haiku-5-5` a small fraction.
+The system prompt is the same every time, so it is marked for caching.
+
+**How it is built.** `POST /api/v1/assistant/reply` (`{ messages: [{ role, text }] }`, ending with
+the person's message) and `GET /api/v1/assistant` (is it on?) in `routes/assistant.js`; the safety
+logic and the call to Claude (through the official `@anthropic-ai/sdk`) in `util/assistant.js`. The
+chat page (`public/js/chatbot-client.js`) decides who answers with `wantsAssistant` in
+`public/js/chat-logic.js`. The tests use a fake of the Anthropic API, so no real account is needed
+to run them.
+
 ## Tests
 
 ```bash

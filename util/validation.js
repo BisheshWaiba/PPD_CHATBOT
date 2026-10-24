@@ -35,6 +35,26 @@ export function validateHistoryEntries(entries) {
   return null;
 }
 
+// The conversation sent to the AI model: the last messages of the chat, ending with the person's
+// own message.
+export const ASSISTANT_ENTRIES_MAX = 20;
+export const ASSISTANT_ENTRY_MAX = 3000; // one message (an assistant reply can be long)
+export const ASSISTANT_LAST_MAX = 1000;  // the person's newest message
+
+export function validateAssistantEntries(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) return 'Please send the conversation so far';
+  if (entries.length > ASSISTANT_ENTRIES_MAX) return `Send at most ${ASSISTANT_ENTRIES_MAX} messages`;
+  for (const entry of entries) {
+    if (!entry || (entry.role !== 'user' && entry.role !== 'bot')) return 'Each message needs a role of "user" or "bot"';
+    if (typeof entry.text !== 'string' || !entry.text.trim()) return 'Each message needs some text';
+    if (entry.text.length > ASSISTANT_ENTRY_MAX) return `A message cannot be more than ${ASSISTANT_ENTRY_MAX} characters`;
+  }
+  const last = entries[entries.length - 1];
+  if (last.role !== 'user') return 'The conversation must end with your message';
+  if (last.text.length > ASSISTANT_LAST_MAX) return `Your message cannot be more than ${ASSISTANT_LAST_MAX} characters`;
+  return null;
+}
+
 export function validateChatMessage(message) {
   if (typeof message !== 'string' || !message.trim()) return 'Please write a message';
   if (message.length > CHAT_MESSAGE_MAX) return `Message cannot be more than ${CHAT_MESSAGE_MAX} characters`;

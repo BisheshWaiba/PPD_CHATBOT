@@ -3,7 +3,7 @@ import {
     normalizeText, hasDevanagari, isYes, isNo, isNewCommand, isBackCommand,
     detectCrisis, crisisMessage, parseAge, parseBirthInput, birthTimingMessage,
     EPDS_LENGTH, EPDS_LANGUAGE_PROMPT, epdsIntro, formatEpdsQuestion, parseEpdsChoice, epdsPoints, buildEpdsResults,
-    wellnessAndHelplines, classifyMessage, replyFor, numberedOptions,
+    wellnessAndHelplines, classifyMessage, replyFor, numberedOptions, wantsAssistant,
     PPD_INFO, PPD_TOPICS_PROMPT, PREGNANCY_ENCOURAGEMENT, SYMPTOM_MENU, SYMPTOM_AREAS
 } from './chat-logic.js';
 import { createRecorder } from './history-recorder.js';
@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let sessionId = localStorage.getItem('chatSessionId') || null;
     let isProcessing = false;
+
+    // The AI conversation (/api/v1/assistant). It is only on when the server has an API key. If it
+    // ever fails, the chat uses its fixed, reviewed replies instead and tries the AI again later.
+    let assistantOn = false;
+    let assistantPausedUntil = 0;        // after a failure, leave the AI alone for a minute
+    let lastReplyFromAssistant = false;  // the AI spoke last, so a short "yes" answers the AI
+    let transcript = [];                 // what was said in this chat: { role: 'user' | 'bot', text }
 
     // Saves each message to the signed-in account (see the History page)
     const recorder = createRecorder((method, path, body) => window.MOMAuth.apiFetch(path, {
@@ -135,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (line.trim()) {
                         const paragraph = document.createElement('p');
                         // Check if line contains HTML (like <a> links)
-                        if (!isUser && line.includes('<a') && line.includes('</a>')) {
+                        if (!isUser && !extras.plain && line.includes('<a') && line.includes('</a>')) {
                             paragraph.innerHTML = line; // Use innerHTML for lines with HTML
                         } else {
                             paragraph.textContent = line; // Use textContent for plain text lines
@@ -150,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             } else {
                 // Check if content contains HTML
-                if (!isUser && content.includes('<a') && content.includes('</a>')) {
+                if (!isUser && !extras.plain && content.includes('<a') && content.includes('</a>')) {
                     contentDiv.innerHTML = content; // Use innerHTML for content with HTML
                 } else {
                     contentDiv.textContent = content; // Use textContent for plain text content
@@ -193,13 +200,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Keep a copy in the person's chat history. The typing dots and the "something went
         // wrong" notice are not part of the conversation.
-        if (!isLoading && !extras.isError) recorder.record(isUser ? 'user' : 'bot', content);
+        if (!isLoading && !extras.isError) {
+            recorder.record(isUser ? 'user' : 'bot', content);
+            transcript.push({ role: isUser ? 'user' : 'bot', text: content });
+        }
 
         return messageDiv;
     }
     
     // Initialize chat
-    function initializeChat() {
+    // Is the AI conversation switched on? Asked once, with a short wait, before the welcome.
+    async function loadAssistantStatus() {
+        try {
+            const response = await window.MOMAuth.apiFetch('/api/v1/assistant', { timeoutMs: 2500 });
+            if (response.ok) assistantOn = Boolean((await response.json()).data?.enabled);
+        } catch (error) {
+            assistantOn = false;
+        }
+    }
+
+    async function initializeChat() {
+        await loadAssistantStatus();
         const chatbox = document.getElementById('chatbox');
         const userMessage = document.getElementById('user-message');
         
@@ -217,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('chatSessionId', sessionId);
         }
         // Display the improved welcome and consent message with hand wave emoji
-        addMessage("Hi there! 👋\n\nThank you for being here. Before we start, please take a moment to review:\n\nThis chatbot provides mental health support and helpful information for mothers after childbirth.\n\n This is not a substitute for professional help. If you're in crisis, please reach out to a healthcare provider.\n\nI can only help with postpartum wellbeing, so I won't be able to answer other questions.\n\nYour chats are saved to your account so you can look back at them later. You can delete them any time from History.\n\nIf you're okay with this, type 'continue' to begin chatting. 💬", false, false, {
+        addMessage("Hi there! 👋\n\nThank you for being here. Before we start, please take a moment to review:\n\nThis chatbot provides mental health support and helpful information for mothers after childbirth.\n\n This is not a substitute for professional help. If you're in crisis, please reach out to a healthcare provider.\n\nI can only help with postpartum wellbeing, so I won't be able to answer other questions.\n\nYour chats are saved to your account so you can look back at them later. You can delete them any time from History.\n\n" + (assistantOn ? "When we talk freely, an AI model writes my replies. It sees your latest messages, which are sent to the AI provider (Anthropic) to do that, so please don't share your full name, phone number or address.\n\n" : "") + "If you're okay with this, type 'continue' to begin chatting. 💬", false, false, {
             actions: [{ label: 'Continue', run: () => handleUserMessage('continue', 'Continue') }]
         });
         conversationState = 'AWAITING_CONTINUE';
@@ -501,6 +522,44 @@ document.addEventListener('DOMContentLoaded', function() {
         return [];
     }
 
+    // Does this message go to the AI? Only conversation does. Everything with a reviewed answer or
+    // a safety reply keeps its fixed reply, and a crisis message is never given to the AI at all.
+    const GUIDED_STATES = ['BIRTH_TIMING_RESPONSE', 'IN_PREGNANCY_INFO', 'SYMPTOMS_QUESTIONNAIRE'];
+
+    function shouldAskAssistant(message) {
+        if (!assistantOn || Date.now() < assistantPausedUntil) return false;
+        if (detectCrisis(message)) return false;
+        const kind = classifyMessage(message);
+        if (conversationState === 'USER_LED') return wantsAssistant(kind, { afterAssistant: lastReplyFromAssistant });
+        if (GUIDED_STATES.includes(conversationState)) {
+            // These steps keep their own answers (yes / no, a number, menu). Anything else is conversation.
+            if (/^(menu|exit|back|new|[1-5][.)]?)$/i.test(message) || isYes(message) || isNo(message)) return false;
+            return wantsAssistant(kind);
+        }
+        return false;
+    }
+
+    // The AI's reply to the conversation so far (the newest message is already in the transcript),
+    // or null when it cannot answer, and the caller uses the fixed reply instead.
+    async function askAssistant() {
+        try {
+            const response = await window.MOMAuth.apiFetch('/api/v1/assistant/reply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: transcript.slice(-16).map((entry) => ({ role: entry.role, text: entry.text.slice(0, 3000) })) }),
+                timeoutMs: 30000
+            });
+            if (response.ok) {
+                const { data } = await response.json();
+                if (data && data.reply) return data.reply;
+            }
+        } catch (error) {
+            // fall through to the pause below
+        }
+        assistantPausedUntil = Date.now() + 60000;
+        return null;
+    }
+
     // Process user message
     async function processUserMessage(rawMessage) {
         const userMessage = normalizeText(rawMessage);
@@ -509,11 +568,17 @@ document.addEventListener('DOMContentLoaded', function() {
         isProcessing = true;
         const loadingMessage = addMessage('', false, true);
         try {
-            // Short pause so the reply feels like someone typing
-            await new Promise((resolve) => setTimeout(resolve, 800));
-            const response = respondTo(userMessage);
+            let response = shouldAskAssistant(userMessage) ? await askAssistant() : null;
+            const fromAssistant = response !== null;
+            if (!fromAssistant) {
+                // Short pause so the reply feels like someone typing
+                await new Promise((resolve) => setTimeout(resolve, 800));
+                response = respondTo(userMessage);
+            }
+            lastReplyFromAssistant = fromAssistant;
             loadingMessage.remove();
-            if (response) addMessage(response, false, false, { actions: repliesFor(response) });
+            // The AI's words are shown as plain text only
+            if (response) addMessage(response, false, false, fromAssistant ? { plain: true } : { actions: repliesFor(response) });
         } catch (error) {
             console.error('Chat error:', error);
             loadingMessage.remove();
@@ -568,7 +633,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!userMessage) return;
 
         // Starting over also starts a new saved chat
-        if (isNewCommand(userMessage)) recorder.startNew();
+        if (isNewCommand(userMessage)) {
+            recorder.startNew();
+            transcript = [];
+            lastReplyFromAssistant = false;
+        }
 
         // Display user message (a tapped answer shows its words, not the number it stands for)
         addMessage(shown || userMessage, true);

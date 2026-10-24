@@ -279,3 +279,39 @@ test('answer buttons: a single numbered line, or a list that does not start at 1
   // A gap stops the list: what comes before it still counts
   assert.deepEqual(numberedOptions('1. One\n2. Two\n5. Five').map(o => o.number), [1, 2]);
 });
+
+/* ---------- which messages the AI conversation takes ---------- */
+
+import { wantsAssistant } from '../public/js/chat-logic.js';
+
+test('conversation goes to the AI: how someone feels, the baby, chat, and off-topic questions', () => {
+  for (const message of ['I feel so tired and alone', 'my baby will not stop crying', 'hello', 'thank you', 'bye', 'what is the capital of France']) {
+    assert.ok(wantsAssistant(classifyMessage(message)), message);
+  }
+});
+
+test('anything with a reviewed answer or a safety reply stays with the fixed replies', () => {
+  for (const message of [
+    'take the check-in', 'symptoms', 'helpline', 'I want my results', 'what is postpartum depression',
+    'what causes postpartum depression', 'self-care tips', 'I have heavy bleeding', 'how much paracetamol can I take',
+    'menu', '1', '3', 'yes', 'no'
+  ]) {
+    assert.equal(wantsAssistant(classifyMessage(message)), false, message);
+  }
+});
+
+test('right after the AI has spoken, a short yes, no or number answers the AI, not the menu', () => {
+  for (const message of ['yes', 'no', '1', '2', '5']) {
+    assert.ok(wantsAssistant(classifyMessage(message), { afterAssistant: true }), message);
+  }
+  // ...but real commands still work
+  for (const message of ['take the check-in', 'helpline', 'menu', 'symptoms', 'what is postpartum depression', 'I have heavy bleeding']) {
+    assert.equal(wantsAssistant(classifyMessage(message), { afterAssistant: true }), false, message);
+  }
+});
+
+test('a crisis message is never one the page would give to the AI', () => {
+  for (const message of ['I want to kill myself', 'I do not want to be alive', 'I might hurt my baby']) {
+    assert.ok(detectCrisis(message), message);
+  }
+});

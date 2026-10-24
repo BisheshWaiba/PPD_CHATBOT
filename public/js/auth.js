@@ -115,12 +115,15 @@
   // fetch() with the token attached. A 401 means the session is no longer valid.
   function apiFetch(url, options) {
     options = options || {};
+    var wait = options.timeoutMs || 10000;
+    options = Object.assign({}, options);
+    delete options.timeoutMs;
     var headers = Object.assign({}, options.headers);
     var token = getToken();
     if (token) headers.Authorization = 'Bearer ' + token;
 
     var controller = new AbortController();
-    var timer = setTimeout(function () { controller.abort(); }, 10000);
+    var timer = setTimeout(function () { controller.abort(); }, wait);
     return fetch(url, Object.assign({}, options, { headers: headers, signal: controller.signal }))
       .then(function (response) {
         if (response.status === 401) clearSession();

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import chatbotRoutes from './routes/chatbot.js';
 import historyRoutes from './routes/history.js';
+import assistantRoutes from './routes/assistant.js';
 import { isProduction } from './util/paths.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -85,6 +86,7 @@ export function createApp() {
   api.use('/auth', authRoutes);
   api.use('/chatbot', chatbotRoutes);
   api.use('/conversations', historyRoutes);
+  api.use('/assistant', assistantRoutes);
   app.use('/api/v1', api);
   app.use('/api', api);
 
