@@ -208,7 +208,12 @@
     logoutButton.className = 'profile-dropdown-item';
     logoutButton.textContent = 'Log out';
     logoutButton.addEventListener('click', function () { logout('/'); });
-    dropdown.append(meta, logoutButton);
+
+    var historyLink = document.createElement('a');
+    historyLink.href = '/history.html';
+    historyLink.className = 'profile-dropdown-item';
+    historyLink.textContent = 'Chat history';
+    dropdown.append(meta, historyLink, logoutButton);
 
     if (section.dataset.wired) return;
     section.dataset.wired = 'true';

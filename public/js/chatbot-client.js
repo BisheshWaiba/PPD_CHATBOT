@@ -6,6 +6,7 @@ import {
     wellnessAndHelplines, classifyMessage, replyFor, numberedOptions,
     PPD_INFO, PPD_TOPICS_PROMPT, PREGNANCY_ENCOURAGEMENT, SYMPTOM_MENU, SYMPTOM_AREAS
 } from './chat-logic.js';
+import { createRecorder } from './history-recorder.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const chatContainer = document.querySelector('#chat-container, .chat-container') || document.querySelector('#chat-messages');
@@ -16,6 +17,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let sessionId = localStorage.getItem('chatSessionId') || null;
     let isProcessing = false;
+
+    // Saves each message to the signed-in account (see the History page)
+    const recorder = createRecorder((method, path, body) => window.MOMAuth.apiFetch(path, {
+        method,
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined
+    }));
     
     // Simulated conversation state
     let conversationState = 'GREETING'; // GREETING, AWAITING_AGE, AGE_VERIFICATION_FAILED, AWAITING_CHILD_BIRTHDATE, etc.
@@ -183,6 +191,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Scroll to bottom immediately
         chatContainer.scrollTop = chatContainer.scrollHeight;
 
+        // Keep a copy in the person's chat history. The typing dots and the "something went
+        // wrong" notice are not part of the conversation.
+        if (!isLoading && !extras.isError) recorder.record(isUser ? 'user' : 'bot', content);
+
         return messageDiv;
     }
     
@@ -205,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('chatSessionId', sessionId);
         }
         // Display the improved welcome and consent message with hand wave emoji
-        addMessage("Hi there! 👋\n\nThank you for being here. Before we start, please take a moment to review:\n\nThis chatbot provides mental health support and helpful information for mothers after childbirth.\n\n This is not a substitute for professional help. If you're in crisis, please reach out to a healthcare provider.\n\nI can only help with postpartum wellbeing, so I won't be able to answer other questions.\n\nIf you're okay with this, type 'continue' to begin chatting. 💬", false, false, {
+        addMessage("Hi there! 👋\n\nThank you for being here. Before we start, please take a moment to review:\n\nThis chatbot provides mental health support and helpful information for mothers after childbirth.\n\n This is not a substitute for professional help. If you're in crisis, please reach out to a healthcare provider.\n\nI can only help with postpartum wellbeing, so I won't be able to answer other questions.\n\nYour chats are saved to your account so you can look back at them later. You can delete them any time from History.\n\nIf you're okay with this, type 'continue' to begin chatting. 💬", false, false, {
             actions: [{ label: 'Continue', run: () => handleUserMessage('continue', 'Continue') }]
         });
         conversationState = 'AWAITING_CONTINUE';
@@ -555,7 +567,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const userMessage = (fromButton ? override : messageInput.value).trim().slice(0, 500);
         if (!userMessage) return;
 
-        // Display user message
+        // Starting over also starts a new saved chat
+        if (isNewCommand(userMessage)) recorder.startNew();
+
+        // Display user message (a tapped answer shows its words, not the number it stands for)
         addMessage(shown || userMessage, true);
         if (!fromButton) messageInput.value = '';
 

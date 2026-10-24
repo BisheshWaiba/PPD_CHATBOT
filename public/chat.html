@@ -76,6 +76,11 @@
         color: var(--ink-soft);
       }
 
+      .chat-head-actions {
+        display: flex;
+        gap: 10px;
+      }
+
       .new-chat {
         display: inline-flex;
         align-items: center;
@@ -526,6 +531,7 @@
         <circle cx="18" cy="18" r="2.8" fill="#FCE3D0"/>
       </symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-history" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
       <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></symbol>
       <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></symbol>
     </svg>
@@ -564,10 +570,16 @@
                 <p>I'm here to help with your health concerns</p>
               </div>
             </div>
-            <button type="button" class="new-chat" id="new-chat">
-              <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>
-              <span class="new-chat-label">New check-in</span>
-            </button>
+            <div class="chat-head-actions">
+              <a href="/history.html" class="new-chat" id="chat-history">
+                <svg class="icon" aria-hidden="true"><use href="#i-history"/></svg>
+                <span class="new-chat-label">History</span>
+              </a>
+              <button type="button" class="new-chat" id="new-chat">
+                <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>
+                <span class="new-chat-label">New check-in</span>
+              </button>
+            </div>
           </div>
 
           <!-- Messages are added here by /js/chatbot-client.js -->

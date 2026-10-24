@@ -41,7 +41,7 @@ const parsePolicy = header => Object.fromEntries(
 );
 
 // The pages people actually use
-const LIVE_PAGES = ['home.html', 'chat.html', 'login.html', 'signup.html', 'aboutus.html', 'report.html', '404.html'];
+const LIVE_PAGES = ['home.html', 'chat.html', 'login.html', 'signup.html', 'aboutus.html', 'report.html', 'history.html', '404.html'];
 
 test('scripts may only come from this site, and never inline', async () => {
   const res = await fetch(`${base}/`);

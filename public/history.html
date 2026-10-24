@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Sutkeri — Chat History</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background: var(--ground);
+      }
+
+      .history-page {
+        flex: 1;
+        padding: 48px 0 72px;
+      }
+
+      .history-wrap {
+        max-width: 820px;
+      }
+
+      .history-intro h1 {
+        margin-bottom: 10px;
+        font-size: clamp(30px, 4vw, 40px);
+        line-height: 1.1;
+      }
+
+      .history-intro p {
+        max-width: 620px;
+        font-size: 18px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+
+      .status {
+        min-height: 1.5em;
+        margin: 24px 0 0;
+        font-size: 16px;
+        color: var(--ink-soft);
+      }
+
+      /* The list of saved chats */
+      .chat-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .chat-card {
+        display: grid;
+        gap: 4px;
+        padding: 18px 22px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--surface);
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+      }
+
+      .chat-card:hover {
+        border-color: var(--lilac);
+        background: var(--tint);
+      }
+
+      .chat-card-when {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink-soft);
+      }
+
+      .chat-card-preview {
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+
+      .chat-card-count {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      /* Buttons, the same pills as the rest of the site */
+      .history-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 32px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 48px;
+        padding: 0 24px;
+        border: 1.5px solid var(--berry);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--berry-dark);
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .pill:hover {
+        background: var(--blush);
+      }
+
+      .pill-primary {
+        background: var(--berry);
+        color: #FFFFFF;
+      }
+
+      .pill-primary:hover {
+        background: var(--berry-dark);
+        border-color: var(--berry-dark);
+      }
+
+      .pill[disabled] {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      /* A delete button asks for a second click, and shows that it is waiting */
+      .pill.is-armed {
+        background: var(--berry-dark);
+        border-color: var(--berry-dark);
+        color: #FFFFFF;
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--berry-dark);
+        text-decoration: underline;
+      }
+
+      .chat-meta {
+        margin-top: 6px;
+        font-size: 16px;
+        color: var(--ink-soft);
+      }
+
+      /* One saved chat, laid out like the live conversation */
+      .transcript {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        margin-top: 28px;
+      }
+
+      .msg {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        max-width: 680px;
+      }
+
+      .msg-bot {
+        align-self: flex-start;
+      }
+
+      .msg-user {
+        align-self: flex-end;
+        max-width: 80%;
+      }
+
+      .msg-mark {
+        flex: none;
+        width: 36px;
+        height: 36px;
+      }
+
+      .msg-body {
+        min-width: 0;
+      }
+
+      .msg-text {
+        margin: 0;
+        padding: 14px 18px;
+        font-size: 17px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+      }
+
+      .msg-bot .msg-text {
+        border: 1px solid var(--line);
+        border-radius: 6px 22px 22px 22px;
+        background: var(--surface);
+      }
+
+      .msg-user .msg-text {
+        border-radius: 22px 6px 22px 22px;
+        background: var(--ink);
+        color: var(--on-dark);
+      }
+
+      .msg-time {
+        display: block;
+        margin-top: 4px;
+        padding: 0 6px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .msg-user .msg-time {
+        text-align: right;
+      }
+
+      .history-footer {
+        padding: 28px 0;
+      }
+
+      .history-footer .footer-copyright {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      @media (max-width: 600px) {
+        .history-page {
+          padding: 32px 0 56px;
+        }
+
+        .chat-card {
+          padding: 16px 18px;
+        }
+
+        .msg-text {
+          padding: 12px 16px;
+          font-size: 16px;
+        }
+
+        .msg-user {
+          max-width: 90%;
+        }
+      }
+    </style>
+  </head>
+  <body data-require-auth>
+    <!-- Shared icons -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <symbol id="mom-mark" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="18" fill="#B83A62"/>
+        <circle cx="18" cy="18" r="8.5" fill="none" stroke="#FCE3D0" stroke-width="3"/>
+        <circle cx="18" cy="18" r="2.8" fill="#FCE3D0"/>
+      </symbol>
+    </svg>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="/" class="logo">
+          <svg class="logo-mark" aria-hidden="true"><use href="#mom-mark"/></svg>
+          <span class="logo-text">Sutkeri</span>
+        </a>
+
+        <nav class="nav-links" aria-label="Main">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/aboutus.html" class="nav-link">About</a>
+          <a href="/chat.html" class="nav-link">Assistant</a>
+          <div class="auth-buttons">
+            <a href="/login.html" class="login-btn">Log in</a>
+            <a href="/signup.html" class="signup-btn">Sign up</a>
+          </div>
+          <div class="profile-section">
+            <button type="button" class="profile-icon" aria-label="Account menu" aria-haspopup="true"></button>
+            <div class="profile-dropdown"></div>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="history-page">
+      <div class="container history-wrap">
+
+        <!-- All saved chats -->
+        <section id="list-view" aria-labelledby="list-title">
+          <div class="history-intro">
+            <h1 id="list-title">Chat history</h1>
+            <p>Your chats are saved to your account so you can look back at them whenever you like. Only you can see them, and you can delete any chat, or all of them, at any time.</p>
+          </div>
+
+          <p id="status" class="status" role="status"></p>
+          <ul id="chat-list" class="chat-list"></ul>
+
+          <div id="list-actions" class="history-actions" hidden>
+            <a href="/chat.html" class="pill pill-primary">Start a new check-in</a>
+            <button type="button" id="delete-all" class="pill">Delete all chats</button>
+          </div>
+
+          <div id="empty-actions" class="history-actions" hidden>
+            <a href="/chat.html" class="pill pill-primary">Start a check-in</a>
+          </div>
+        </section>
+
+        <!-- One saved chat -->
+        <section id="chat-view" aria-labelledby="chat-title" hidden>
+          <a href="/history.html" class="back-link">&larr; All chats</a>
+          <div class="history-intro">
+            <h1 id="chat-title">Saved chat</h1>
+            <p id="chat-meta" class="chat-meta"></p>
+          </div>
+
+          <p id="chat-status" class="status" role="status"></p>
+          <div id="transcript" class="transcript" role="log" aria-label="Saved conversation"></div>
+
+          <div id="chat-actions" class="history-actions" hidden>
+            <a href="/chat.html" class="pill pill-primary">Start a new check-in</a>
+            <button type="button" id="delete-chat" class="pill">Delete this chat</button>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <footer class="site-footer history-footer">
+      <div class="container">
+        <div class="footer-copyright">
+          <span>&copy; 2026 Sutkeri, your postpartum care companion.</span>
+          <span>Sutkeri is not a substitute for professional medical advice.</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/pages/history.js" type="module"></script>
+  </body>
+</html>

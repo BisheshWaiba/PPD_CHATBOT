@@ -19,6 +19,22 @@ export function validateEmail(value) {
   return null;
 }
 
+// Saved chat history. A saved message may be longer than one a person types, because it can be
+// one of the assistant's answers.
+export const HISTORY_TEXT_MAX = 4000;
+export const HISTORY_BATCH_MAX = 20;
+
+export function validateHistoryEntries(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) return 'Please send the messages to save';
+  if (entries.length > HISTORY_BATCH_MAX) return `Send at most ${HISTORY_BATCH_MAX} messages at a time`;
+  for (const entry of entries) {
+    if (!entry || (entry.role !== 'user' && entry.role !== 'bot')) return 'Each message needs a role of "user" or "bot"';
+    if (typeof entry.text !== 'string' || !entry.text.trim()) return 'Each message needs some text';
+    if (entry.text.length > HISTORY_TEXT_MAX) return `A message cannot be more than ${HISTORY_TEXT_MAX} characters`;
+  }
+  return null;
+}
+
 export function validateChatMessage(message) {
   if (typeof message !== 'string' || !message.trim()) return 'Please write a message';
   if (message.length > CHAT_MESSAGE_MAX) return `Message cannot be more than ${CHAT_MESSAGE_MAX} characters`;

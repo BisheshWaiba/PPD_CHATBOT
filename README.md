@@ -79,6 +79,18 @@ status code, so `response.ok` is enough to tell them apart. A success carries `"
 Chat requests answer 503 when the Python chatbot cannot run (not installed, crashed or too slow).
 An address that is not a page or an API path is a real 404 (a page for browsers, JSON under `/api`).
 
+Saved chats (all need a bearer token, and each account only ever reaches its own: a chat that is
+not yours is a 404, exactly like one that does not exist):
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v1/conversations` | Your saved chats, most recently active first: `{ id, startedAt, updatedAt, messageCount, preview }` |
+| POST | `/api/v1/conversations` | Starts a saved chat. 201 with its summary. 409 at 500 saved chats |
+| GET | `/api/v1/conversations/:id` | One chat with all its messages: `{ role: "user" \| "bot", text, at }` |
+| POST | `/api/v1/conversations/:id/messages` | `{ messages: [{ role, text }] }`, up to 20 at a time, 4000 characters each. 409 once a chat holds 500 messages |
+| DELETE | `/api/v1/conversations/:id` | Deletes one chat |
+| DELETE | `/api/v1/conversations` | Deletes all of your chats |
+
 Chat sessions belong to the account that opened them: another account sending the same session
 id gets its own conversation. Change the request limit with `CHAT_RATE_LIMIT`. Conversation files in
 `temp/` are removed automatically once they have been idle for 24 hours.
@@ -99,6 +111,15 @@ curl http://localhost:8004/api/v1/auth/me -H "Authorization: Bearer YOUR_TOKEN_H
   (inline scripts are blocked by the Content-Security-Policy). The chat runs in the browser:
   `public/js/chat-logic.js` holds the wording and scoring, `public/js/chatbot-client.js` the
   conversation.
+- **Chat history:** while signed in, every chat is saved to the account, and the History page
+  (`/history.html`, reached from the account menu or the History button in the chat) lists them,
+  shows any of them as a conversation, and deletes one or all of them (each asks for a second click).
+  The chat page says so in its welcome message. Chats are saved in the background and chatting never
+  waits for it: if saving fails, the messages are sent again with the next ones. Typing "new" or
+  pressing New check-in starts a new saved chat, and a chat is named after the first thing that was
+  said that says something, not "Continue". What is saved is the text of the conversation, kept in
+  `data/history.json` (git-ignored) or in MongoDB, and only the signed-in owner can read or delete it.
+  Chat history is separate from logging out, which clears the browser's copy but keeps the saved chats.
 - **Chat answers:** every numbered question is also offered as tappable buttons (a tap does exactly
   what typing the number does), and if something goes wrong the chat says so with a "Try again"
   button.
