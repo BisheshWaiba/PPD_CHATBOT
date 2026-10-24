@@ -123,7 +123,7 @@
   //   { status: 'unknown' }      the server could not say (down or unreachable)
   function verifySession() {
     if (!getToken()) return Promise.resolve({ status: 'invalid' });
-    return apiFetch('/api/auth/me')
+    return apiFetch('/api/v1/auth/me')
       .then(function (response) {
         if (response.status === 401) return { status: 'invalid' };
         if (!response.ok) return { status: 'unknown' };

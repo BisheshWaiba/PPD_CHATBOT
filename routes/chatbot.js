@@ -25,6 +25,11 @@ const chatByUser = new RateLimiter({
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
 
+// When the chatbot cannot run (Python missing, crashed or too slow) the answer is a 503,
+// not a friendly-looking 200 that hides the problem
+const UNAVAILABLE = 'The chat assistant is not available right now. Please try again in a moment.';
+const SOMETHING_WRONG = 'Something went wrong. Please try again.';
+
 // True (after answering 429) when the account has used up its allowance
 function overLimit(req, res) {
     const limit = chatByUser.check(req.user.id);
@@ -119,30 +124,18 @@ router.get('/greeting', async (req, res) => {
                 const response = await pythonResponse;
                 
                 // Send response
-                res.json({ 
-                    sessionId, 
-                    response: response
-                });
-                
+                res.json({ success: true, sessionId, response });
+
             } catch (pythonError) {
                 console.error('Python chatbot failed:', pythonError);
-                res.status(500).json({ 
-                    error: 'An error occurred while getting the greeting.',
-                    message: "I'm sorry, I couldn't initialize the chat. Please try again."
-                });
+                fail(res, 503, UNAVAILABLE);
             }
         } else {
-            res.status(500).json({ 
-                error: 'Chatbot service is currently unavailable.',
-                message: "I'm sorry, the chatbot service is currently unavailable. Please try again later."
-            });
+            fail(res, 503, UNAVAILABLE);
         }
     } catch (error) {
         console.error('Error getting greeting:', error);
-        res.status(500).json({ 
-            error: 'An error occurred while getting the greeting.',
-            message: "I'm sorry, I couldn't initialize the chat. Please try again."
-        });
+        fail(res, 500, SOMETHING_WRONG);
     }
 });
 
@@ -269,31 +262,19 @@ router.post('/message', async (req, res) => {
                 
                 // Send response
                 console.log(`Sending response to client for session ${sessionId}`);
-                res.json({ 
-                    sessionId, 
-                    response: response
-                });
-                
+                res.json({ success: true, sessionId, response });
+
             } catch (pythonError) {
                 console.error(`Python chatbot failed: ${pythonError.stack || pythonError}`);
-                res.json({ 
-                    sessionId,
-                    response: "I'm sorry, I couldn't process your request. Could you try again?"
-                });
+                fail(res, 503, UNAVAILABLE);
             }
         } else {
             console.log(`Python chatbot is disabled`);
-            res.json({ 
-                sessionId,
-                response: "I'm sorry, the chatbot service is currently unavailable. Please try again later."
-            });
+            fail(res, 503, UNAVAILABLE);
         }
     } catch (error) {
         console.error(`Error processing message: ${error.stack || error}`);
-        res.json({ 
-            error: 'An error occurred while processing your message.',
-            response: "I'm sorry, I couldn't process your request. Please try again."
-        });
+        fail(res, 500, SOMETHING_WRONG);
     }
 });
 

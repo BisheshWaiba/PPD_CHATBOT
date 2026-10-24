@@ -59,8 +59,13 @@ export function createApp() {
     next();
   });
 
-  app.use('/api/auth', authRoutes);
-  app.use('/api/chatbot', chatbotRoutes);
+  // /api/v1 is the stable path. The unversioned /api paths serve the same routes (and share
+  // their rate limits), so older clients keep working.
+  const api = express.Router();
+  api.use('/auth', authRoutes);
+  api.use('/chatbot', chatbotRoutes);
+  app.use('/api/v1', api);
+  app.use('/api', api);
 
   // Unknown API paths get JSON, not the home page
   app.use('/api', (req, res) => {
@@ -82,9 +87,9 @@ export function createApp() {
     res.redirect('/');
   });
 
-  // Catch-all route for client-side routing
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'home.html'));
+  // Every page is a real file, so anything else is a real 404
+  app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
   });
 
   // Error handling. Must come after the routes to catch their errors.

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Sutkeri — Page not found</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background: var(--ground);
+      }
+
+      .lost {
+        flex: 1;
+        display: grid;
+        place-items: center;
+        padding: 64px 0;
+      }
+
+      .lost-card {
+        max-width: 520px;
+        text-align: center;
+      }
+
+      .lost-code {
+        margin: 0 0 12px;
+        font-family: var(--display);
+        font-size: clamp(4rem, 14vw, 7rem);
+        font-weight: 700;
+        line-height: 1;
+        color: var(--berry);
+      }
+
+      .lost-card h1 {
+        margin: 0 0 12px;
+        font-size: clamp(1.5rem, 4vw, 2rem);
+      }
+
+      .lost-card p {
+        margin: 0 0 28px;
+        color: var(--ink-soft);
+      }
+
+      .lost-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+      }
+
+      .lost-actions a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 22px;
+        border: 1.5px solid var(--berry);
+        border-radius: 999px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+
+      .lost-primary {
+        background: var(--berry);
+        color: #fff;
+      }
+
+      .lost-primary:hover {
+        background: var(--berry-dark);
+        border-color: var(--berry-dark);
+      }
+
+      .lost-secondary {
+        color: var(--berry-dark);
+      }
+
+      .lost-secondary:hover {
+        background: var(--blush);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Shared icons -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <symbol id="mom-mark" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="18" fill="#B83A62"/>
+        <circle cx="18" cy="18" r="8.5" fill="none" stroke="#FCE3D0" stroke-width="3"/>
+        <circle cx="18" cy="18" r="2.8" fill="#FCE3D0"/>
+      </symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+    </svg>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="/" class="logo">
+          <svg class="logo-mark" aria-hidden="true"><use href="#mom-mark"/></svg>
+          <span class="logo-text">Sutkeri</span>
+        </a>
+
+        <nav class="nav-links" aria-label="Main">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/aboutus.html" class="nav-link">About</a>
+          <a href="/chat.html" class="nav-link">Assistant</a>
+          <div class="auth-buttons">
+            <a href="/login.html" class="login-btn">Log in</a>
+            <a href="/signup.html" class="signup-btn">Sign up</a>
+          </div>
+          <div class="profile-section">
+            <button type="button" class="profile-icon" aria-label="Account menu" aria-haspopup="true"></button>
+            <div class="profile-dropdown"></div>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="lost">
+      <div class="container">
+        <div class="lost-card">
+          <p class="lost-code" aria-hidden="true">404</p>
+          <h1>We couldn't find that page</h1>
+          <p>The link may be old, or the address may have a typo. Nothing is wrong with your account.</p>
+          <div class="lost-actions">
+            <a href="/" class="lost-primary">Back to home</a>
+            <a href="/chat.html" class="lost-secondary">Open the assistant</a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="/js/auth.js"></script>
+  </body>
+</html>
