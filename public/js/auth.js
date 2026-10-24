@@ -263,12 +263,4 @@
     loginUrl: loginUrl,
     initHeader: initHeader
   };
-
-  // Names the old version exposed, still used by medical-assistant.html
-  window.isAuthenticated = isAuthenticated;
-  window.getCurrentUser = getUser;
-  window.getInitials = getInitials;
-  window.logout = logout;
-  window.updateUIForAuthState = initHeader;
-  window.setupEventListeners = function () {};
 })();

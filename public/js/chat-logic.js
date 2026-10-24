@@ -494,6 +494,22 @@ export const SYMPTOM_AREAS = {
 };
 
 /**
+ * The numbered answers in one of the assistant's messages ("1. Yes", "2. No"), so the page can
+ * offer them as buttons. Only a list that starts at 1 and counts up is used, and a single
+ * numbered line is not a list. Returns [{ number, label }], or [] when there is no list.
+ */
+export function numberedOptions(text) {
+  const options = [];
+  for (const line of String(text).split('\n')) {
+    const match = line.match(/^\s*(\d{1,2})[.)]\s+(.+?)\s*$/);
+    if (!match) continue; // the question and the hints around the list
+    if (Number(match[1]) !== options.length + 1) break;
+    options.push({ number: options.length + 1, label: match[2] });
+  }
+  return options.length >= 2 ? options : [];
+}
+
+/**
  * Decides what a free-text message is about. The assistant only answers topics it has
  * written, reviewed answers for. Everything else gets a polite "I can't help with that".
  *

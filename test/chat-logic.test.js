@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {
   normalizeText, parseAge, parseBirthInput, birthTimingMessage, detectCrisis, crisisMessage,
   parseEpdsChoice, scoreEpds, epdsPoints, EPDS_QUESTIONS, formatEpdsQuestion, buildEpdsResults,
-  classifyMessage, replyFor, isYes, isNo, isNewCommand, isBackCommand, HELPLINES
+  classifyMessage, replyFor, isYes, isNo, isNewCommand, isBackCommand, HELPLINES,
+  numberedOptions, EPDS_LANGUAGE_PROMPT, PPD_TOPICS_PROMPT, SYMPTOM_MENU, SYMPTOM_AREAS, PPD_INFO
 } from '../public/js/chat-logic.js';
 
 const NOW = new Date(2026, 9, 21); // 21 Oct 2026, local time
@@ -236,4 +237,45 @@ test('questions outside postpartum care are classified as off-topic and never an
 test('baby and family questions it cannot answer are declined, not improvised', () => {
   assert.equal(classifyMessage('my baby will not latch'), 'related_other');
   assert.match(replyFor('related_other'), /can't give advice on it/);
+});
+
+/* ---------- tappable answers ---------- */
+
+test('answer buttons: a numbered list becomes options with their numbers and words', () => {
+  assert.deepEqual(numberedOptions('Would you like to start?\n\n1. Yes\n2. No'), [
+    { number: 1, label: 'Yes' },
+    { number: 2, label: 'No' }
+  ]);
+});
+
+test('answer buttons: every list the assistant asks a question with is found, in both languages', () => {
+  assert.deepEqual(numberedOptions(EPDS_LANGUAGE_PROMPT).map(o => o.label), ['English', 'नेपाली (Nepali)']);
+  assert.equal(numberedOptions(PPD_TOPICS_PROMPT).length, 5);
+  assert.equal(numberedOptions(SYMPTOM_MENU).length, 5);
+  assert.equal(numberedOptions(replyFor('menu', 'english')).length, 5);
+  assert.equal(numberedOptions(replyFor('menu', 'nepali')).length, 5);
+  for (const language of ['english', 'nepali']) {
+    for (let i = 0; i < EPDS_QUESTIONS[language].length; i++) {
+      const options = numberedOptions(formatEpdsQuestion(language, i));
+      // Each questionnaire answer is offered with the number the scoring expects
+      assert.deepEqual(options.map(o => o.number), [1, 2, 3, 4], `${language} question ${i + 1}`);
+      assert.deepEqual(options.map(o => o.label), EPDS_QUESTIONS[language][i].a, `${language} question ${i + 1}`);
+    }
+  }
+});
+
+test('answer buttons: ordinary replies give no buttons', () => {
+  assert.deepEqual(numberedOptions(''), []);
+  assert.deepEqual(numberedOptions('To give you the best support, may I ask your age?'), []);
+  assert.deepEqual(numberedOptions(PPD_INFO[3]), []);
+  for (const area of Object.values(SYMPTOM_AREAS)) assert.deepEqual(numberedOptions(area), []);
+});
+
+test('answer buttons: a single numbered line, or a list that does not start at 1, is not a list', () => {
+  assert.deepEqual(numberedOptions('Step 1. only'), []);
+  assert.deepEqual(numberedOptions('1. Only one option'), []);
+  assert.deepEqual(numberedOptions('2. Second\n3. Third'), []);
+  assert.deepEqual(numberedOptions('1. One\n3. Three'), []);
+  // A gap stops the list: what comes before it still counts
+  assert.deepEqual(numberedOptions('1. One\n2. Two\n5. Five').map(o => o.number), [1, 2]);
 });

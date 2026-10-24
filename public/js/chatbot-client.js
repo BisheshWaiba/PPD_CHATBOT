@@ -3,7 +3,7 @@ import {
     normalizeText, hasDevanagari, isYes, isNo, isNewCommand, isBackCommand,
     detectCrisis, crisisMessage, parseAge, parseBirthInput, birthTimingMessage,
     EPDS_LENGTH, EPDS_LANGUAGE_PROMPT, epdsIntro, formatEpdsQuestion, parseEpdsChoice, epdsPoints, buildEpdsResults,
-    wellnessAndHelplines, classifyMessage, replyFor,
+    wellnessAndHelplines, classifyMessage, replyFor, numberedOptions,
     PPD_INFO, PPD_TOPICS_PROMPT, PREGNANCY_ENCOURAGEMENT, SYMPTOM_MENU, SYMPTOM_AREAS
 } from './chat-logic.js';
 
@@ -53,8 +53,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Function to add a message to the chat
-    function addMessage(content, isUser = false, isLoading = false) {
+    // Buttons for the answers to the question that was just asked. Tapping one does exactly
+    // what typing that answer would. Each is { label, run }.
+    function buildQuickReplies(actions, isRetry) {
+        const group = document.createElement('div');
+        group.className = 'quick-replies';
+        group.setAttribute('role', 'group');
+        group.setAttribute('aria-label', isRetry ? 'Try again' : 'Quick replies');
+        // Lists (menus, the questionnaire's four answers) read better one under another, and so do
+        // long answers. Short pairs such as Yes / No stay side by side.
+        if (actions.length > 3 || actions.some((action) => action.label.length > 28)) group.classList.add('stacked');
+
+        actions.forEach((action) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'quick-reply';
+            button.textContent = action.label;
+            button.addEventListener('click', (event) => {
+                if (isProcessing) return;
+                action.run();
+                // Pressed from the keyboard (no pointer): keep the person's place by going back to
+                // the message box. A tap must not pop up the on-screen keyboard, so it does not.
+                if (event.detail === 0) messageInput.focus();
+            });
+            group.appendChild(button);
+        });
+        return group;
+    }
+
+    // Old buttons stop being answers once anything else is said
+    function clearQuickReplies() {
+        chatContainer.querySelectorAll('.quick-replies').forEach((group) => group.remove());
+    }
+
+    // Function to add a message to the chat.
+    // extras.actions: buttons to show under a bot message. extras.isError: style it as a failure.
+    function addMessage(content, isUser = false, isLoading = false, extras = {}) {
+        if (!isLoading) clearQuickReplies();
+
         // Create message element
         const messageDiv = document.createElement('div');
         messageDiv.className = isUser ? 'user-message' : 'bot-message';
@@ -114,8 +150,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        if (!isUser && !isLoading) {
+            if (extras.isError) {
+                messageDiv.classList.add('message-error');
+                contentDiv.setAttribute('role', 'alert');
+            }
+            if (extras.actions && extras.actions.length) {
+                contentDiv.appendChild(buildQuickReplies(extras.actions, Boolean(extras.isError)));
+            }
+        }
+
         messageDiv.appendChild(contentDiv);
-        
+
         // For user messages, add avatar at the end
         if (isUser) {
             const avatarDiv = document.createElement('div');
@@ -159,7 +205,9 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('chatSessionId', sessionId);
         }
         // Display the improved welcome and consent message with hand wave emoji
-        addMessage("Hi there! 👋\n\nThank you for being here. Before we start, please take a moment to review:\n\nThis chatbot provides mental health support and helpful information for mothers after childbirth.\n\n This is not a substitute for professional help. If you're in crisis, please reach out to a healthcare provider.\n\nI can only help with postpartum wellbeing, so I won't be able to answer other questions.\n\nIf you're okay with this, type 'continue' to begin chatting. 💬");
+        addMessage("Hi there! 👋\n\nThank you for being here. Before we start, please take a moment to review:\n\nThis chatbot provides mental health support and helpful information for mothers after childbirth.\n\n This is not a substitute for professional help. If you're in crisis, please reach out to a healthcare provider.\n\nI can only help with postpartum wellbeing, so I won't be able to answer other questions.\n\nIf you're okay with this, type 'continue' to begin chatting. 💬", false, false, {
+            actions: [{ label: 'Continue', run: () => handleUserMessage('continue', 'Continue') }]
+        });
         conversationState = 'AWAITING_CONTINUE';
         window.conversationState = conversationState;
     }
@@ -420,6 +468,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Tappable answers for what the assistant just asked: the numbered list in its message, plus
+    // the single answers some steps expect ("continue", yes / no). Tapping sends what typing would.
+    function repliesFor(text) {
+        const send = (value, label) => ({ label, run: () => handleUserMessage(value, label) });
+        const numbered = numberedOptions(text);
+
+        if (conversationState === 'SYMPTOMS_QUESTIONNAIRE') {
+            // The reply to one area ends with "enter a number 1-5" and no list, so offer the areas again
+            const areas = numbered.length ? numbered : numberedOptions(SYMPTOM_MENU);
+            return [...areas.map((option) => send(String(option.number), option.label)), send('exit', 'Back to menu')];
+        }
+        if (numbered.length) {
+            const options = numbered.map((option) => send(String(option.number), option.label));
+            if (conversationState === 'IN_PREGNANCY_INFO') options.push(send('menu', 'Back to menu'));
+            return options;
+        }
+        if (conversationState === 'AWAITING_CONTINUE') return [send('continue', 'Continue')];
+        if (conversationState === 'BIRTH_TIMING_RESPONSE') return [send('yes', 'Yes'), send('no', 'No')];
+        return [];
+    }
+
     // Process user message
     async function processUserMessage(rawMessage) {
         const userMessage = normalizeText(rawMessage);
@@ -432,11 +501,15 @@ document.addEventListener('DOMContentLoaded', function() {
             await new Promise((resolve) => setTimeout(resolve, 800));
             const response = respondTo(userMessage);
             loadingMessage.remove();
-            if (response) addMessage(response, false);
+            if (response) addMessage(response, false, false, { actions: repliesFor(response) });
         } catch (error) {
             console.error('Chat error:', error);
             loadingMessage.remove();
-            addMessage("I'm sorry, something went wrong on my side. Please try again, or type 'new' to start over.", false);
+            // Say plainly that something broke, and offer to run the same message again
+            const failed = addMessage("I'm sorry, something went wrong on my side. Please try again, or type 'new' to start over.", false, false, {
+                isError: true,
+                actions: [{ label: 'Try again', run: () => { failed.remove(); processUserMessage(rawMessage); } }]
+            });
         } finally {
             isProcessing = false;
         }
@@ -474,15 +547,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize chat with greeting
     initializeChat();
 
-    // Function to handle user messages
-    function handleUserMessage() {
+    // Function to handle user messages. A tapped answer passes what to send (for example "1")
+    // and what to show in the chat (for example "Yes").
+    function handleUserMessage(override, shown) {
+        const fromButton = override !== undefined;
         // Keep one message to a sensible length
-        const userMessage = messageInput.value.trim().slice(0, 500);
+        const userMessage = (fromButton ? override : messageInput.value).trim().slice(0, 500);
         if (!userMessage) return;
 
         // Display user message
-        addMessage(userMessage, true);
-        messageInput.value = '';
+        addMessage(shown || userMessage, true);
+        if (!fromButton) messageInput.value = '';
 
         // Check if user wants to start a new conversation
         if (isNewCommand(userMessage)) {

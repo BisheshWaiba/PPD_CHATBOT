@@ -91,6 +91,23 @@ curl -X POST http://localhost:8004/api/v1/auth/register \
 curl http://localhost:8004/api/v1/auth/me -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
+## Front end
+
+- **Design:** `public/css/site.css` (colours, type, header, footer) plus `public/css/auth.css` for
+  the sign-in and sign-up pages. These are the only stylesheets; every page uses `site.css`.
+- **Page code:** `public/js/auth.js` is shared; each page's own code is in `public/js/pages/`
+  (inline scripts are blocked by the Content-Security-Policy). The chat runs in the browser:
+  `public/js/chat-logic.js` holds the wording and scoring, `public/js/chatbot-client.js` the
+  conversation.
+- **Chat answers:** every numbered question is also offered as tappable buttons (a tap does exactly
+  what typing the number does), and if something goes wrong the chat says so with a "Try again"
+  button.
+- **Accessibility:** every focusable element shows a visible focus ring (light on the dark footer
+  and the berry call-to-action), and text meets 4.5:1 contrast. `test/design-tokens.test.js` checks
+  the colour pairs, so changing a token that breaks contrast fails the tests.
+- **Old design:** screenshots of the earlier pink "MOM" design are in `docs/old-ui-screenshots/`.
+  They are reference only and are not served.
+
 ## Tests
 
 ```bash

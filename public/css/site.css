@@ -75,6 +75,14 @@ a:focus-visible, button:focus-visible, input:focus-visible {
   outline-offset: 3px;
 }
 
+/* The berry ring is only 3:1 on the dark footer and brand panel and disappears on the berry
+   call-to-action card, so keyboard focus uses a light ring on those surfaces. */
+.site-footer :is(a, button, input):focus-visible,
+.auth-brand a:focus-visible,
+.cta-card a:focus-visible {
+  outline-color: var(--apricot-light);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -391,6 +399,11 @@ body[data-require-auth]:not(.auth-ready) {
   background: var(--plum-card);
   color: var(--on-dark);
   font-size: 16px;
+}
+
+/* The browser's default grey is only 3:1 on the dark box */
+.newsletter-form input::placeholder {
+  color: var(--on-dark-soft);
 }
 
 .newsletter-form button {
