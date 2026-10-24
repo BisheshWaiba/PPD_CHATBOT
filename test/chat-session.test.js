@@ -4,7 +4,6 @@
 // available. It uses the local user file in a temporary folder, like the auth tests.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -22,9 +21,10 @@ delete process.env.CORS_ORIGIN;
 const { createApp } = await import('../app.js');
 const { initUserStore } = await import('../util/userStore.js');
 const { sessionKey } = await import('../util/chatSession.js');
+const { pythonAvailable } = await import('../util/python.js');
 
 const tempDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'temp');
-const hasPython = spawnSync('python', ['--version']).status === 0;
+const hasPython = pythonAvailable();
 
 test('session key: same account and session give the same key', () => {
   assert.equal(sessionKey('user-1', 'abc'), sessionKey('user-1', 'abc'));

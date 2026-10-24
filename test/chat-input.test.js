@@ -5,7 +5,6 @@
 // `python` is not available.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -24,10 +23,11 @@ delete process.env.CORS_ORIGIN;
 const { createApp } = await import('../app.js');
 const { initUserStore } = await import('../util/userStore.js');
 const { sessionKey } = await import('../util/chatSession.js');
+const { pythonAvailable } = await import('../util/python.js');
 const { validateChatMessage, CHAT_MESSAGE_MAX } = await import('../util/validation.js');
 
 const tempDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'temp');
-const hasPython = spawnSync('python', ['--version']).status === 0;
+const hasPython = pythonAvailable();
 const needsPython = { skip: !hasPython && 'python is not available' };
 
 test('validation: ordinary messages are accepted', () => {

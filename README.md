@@ -12,6 +12,8 @@ An Express.js app with JWT authentication, MongoDB, and a postpartum support cha
 ## Prerequisites
 
 - Node.js 18 or higher
+- Python 3 for the chat assistant (no extra packages needed). The server warns on start-up if it
+  cannot find it; set `PYTHON` in `.env` to the command or full path if it is not on your PATH.
 - A MongoDB database (Atlas or local). See `MongoDB-Setup-Guide.md`.
 
 ## Setup
@@ -61,7 +63,8 @@ Open http://localhost:8004. If MongoDB is not reachable in development, accounts
 | POST | `/api/chatbot/message` | Bearer token | `{ message }` with the `x-session-id` header. 400 if the message is missing, blank or over 1000 characters. 429 past 30 requests a minute per account |
 
 Chat sessions belong to the account that opened them: another account sending the same session
-id gets its own conversation. Change the request limit with `CHAT_RATE_LIMIT`.
+id gets its own conversation. Change the request limit with `CHAT_RATE_LIMIT`. Conversation files in
+`temp/` are removed automatically once they have been idle for 24 hours.
 
 ```bash
 curl -X POST http://localhost:8004/api/auth/register \

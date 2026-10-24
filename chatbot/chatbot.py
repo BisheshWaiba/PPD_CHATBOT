@@ -5,7 +5,6 @@ import os
 import sys
 import random
 import uuid
-import requests
 import time
 import traceback
 from enum import Enum

@@ -8,6 +8,8 @@ import { protect } from '../middleware/auth.js';
 import { sessionKey } from '../util/chatSession.js';
 import { validateChatMessage } from '../util/validation.js';
 import { RateLimiter } from '../util/rateLimit.js';
+import { pythonCommand } from '../util/python.js';
+import { tempDir } from '../util/paths.js';
 
 const router = express.Router();
 
@@ -36,7 +38,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Directory to store session data
-const TEMP_DIR = path.join(__dirname, '..', 'temp');
+const TEMP_DIR = tempDir();
 
 // Create temp directory if it doesn't exist
 if (!fs.existsSync(TEMP_DIR)) {
@@ -71,7 +73,7 @@ router.get('/greeting', async (req, res) => {
                     let error = '';
                     
                     // Spawn Python process with --first-run flag
-                    const pythonProcess = spawn('python', [
+                    const pythonProcess = spawn(pythonCommand(), [
                         pythonScript,
                         '--first-run',
                         '--user', sessionKey(req.user.id, sessionId)
@@ -104,10 +106,13 @@ router.get('/greeting', async (req, res) => {
                     });
                     
                     // Set timeout
-                    setTimeout(() => {
+                    const timer = setTimeout(() => {
                         pythonProcess.kill();
                         reject(new Error('Python process timed out'));
                     }, 5000); // 5 second timeout
+                    // Stop the timer once the process is over, or it would still fire later
+                    pythonProcess.on('close', () => clearTimeout(timer));
+                    pythonProcess.on('error', () => clearTimeout(timer));
                 });
                 
                 // Wait for Python response
@@ -197,10 +202,10 @@ router.post('/message', async (req, res) => {
                         '--user', chatKey,
                         '--message-file', messageFile
                     ];
-                    console.log(`Command: python ${args.join(' ')}`);
-                    
+                    console.log(`Command: ${pythonCommand()} ${args.join(' ')}`);
+
                     // Spawn Python process
-                    const pythonProcess = spawn('python', args);
+                    const pythonProcess = spawn(pythonCommand(), args);
                     
                     // Collect output
                     pythonProcess.stdout.on('data', (data) => {
@@ -248,11 +253,14 @@ router.post('/message', async (req, res) => {
                     });
                     
                     // Set timeout
-                    setTimeout(() => {
+                    const timer = setTimeout(() => {
                         pythonProcess.kill();
                         console.error(`Python process timed out after 5 seconds`);
                         reject(new Error('Python process timed out'));
                     }, 5000); // 5 second timeout
+                    // Stop the timer once the process is over, or it would still fire later
+                    pythonProcess.on('close', () => clearTimeout(timer));
+                    pythonProcess.on('error', () => clearTimeout(timer));
                 });
                 
                 // Wait for Python response
