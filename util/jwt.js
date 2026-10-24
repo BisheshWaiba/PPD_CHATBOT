@@ -50,10 +50,13 @@ export function assertJwtConfig() {
   getJwtSecret();
 }
 
+// Every token gets its own id (the "jti" claim), so signing out can end this one token
+// without touching the same account's sign-ins on other devices.
 export function signToken(user) {
   return jwt.sign({ id: String(user.id) }, getJwtSecret(), {
     algorithm: 'HS256',
-    expiresIn: process.env.JWT_EXPIRE || '7d'
+    expiresIn: process.env.JWT_EXPIRE || '7d',
+    jwtid: crypto.randomUUID()
   });
 }
 

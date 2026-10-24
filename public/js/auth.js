@@ -73,6 +73,18 @@
   }
 
   function logout(redirectTo) {
+    // Tell the server to end this token, so a copy of it stops working too. Best effort:
+    // signing out in this browser never waits for the answer, and never fails because of it.
+    var token = getToken();
+    if (token) {
+      try {
+        fetch('/api/v1/auth/logout', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token },
+          keepalive: true
+        }).catch(function () {});
+      } catch (e) { /* ignore */ }
+    }
     clearSession();
     CHECKIN_KEYS.forEach(function (key) { localStorage.removeItem(key); });
     window.location.assign(redirectTo || '/');

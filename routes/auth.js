@@ -89,6 +89,16 @@ router.post('/login', wrap(async (req, res) => {
   res.status(200).json({ success: true, token: signToken(user), user });
 }));
 
+// @route   POST /api/auth/logout
+// @desc    Sign out: this token stops working at once. The account's other sign-ins are kept.
+// @access  Private
+router.post('/logout', protect, wrap(async (req, res) => {
+  const { jti, exp } = req.token;
+  // Tokens from before sign-out existed have no id. They cannot be ended, only left to expire.
+  if (jti) await getUserStore().revokeToken(jti, exp);
+  res.status(200).json({ success: true, message: 'Signed out' });
+}));
+
 // @route   GET /api/auth/me
 // @desc    Get current logged in user
 // @access  Private

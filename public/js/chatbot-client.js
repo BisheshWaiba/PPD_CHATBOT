@@ -145,55 +145,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const chatbox = document.getElementById('chatbox');
         const userMessage = document.getElementById('user-message');
         
-        // Check for test mode URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const testDate = urlParams.get('testDate');
-        const testMode = urlParams.get('testMode');
-        const debugMode = urlParams.get('debug') === 'true';
-        
-        // Set up global debug mode flag
+        // Optional extra logging: add ?debug=true to the address
+        const debugMode = new URLSearchParams(window.location.search).get('debug') === 'true';
         window.chatbotDebugMode = debugMode;
-        
+
         if (debugMode) {
             console.log("🔍 DEBUG MODE ENABLED - Detailed logging will be shown");
         }
-        
-        if (testDate) {
-            // Set a mock system date for testing
-            try {
-                const mockDate = new Date(testDate);
-                if (!isNaN(mockDate)) {
-                    console.log("🧪 TEST MODE: Using mock system date:", mockDate);
-                    console.log(`   Year: ${mockDate.getFullYear()}, Month: ${mockDate.getMonth() + 1}, Day: ${mockDate.getDate()}`);
-                    
-                    // Override Date constructor for testing
-                    const OriginalDate = Date;
-                    Date = function(arg) {
-                        if (arguments.length === 0) {
-                            return new OriginalDate(mockDate);
-                        } else {
-                            return new OriginalDate(...arguments);
-                        }
-                    };
-                    Date.UTC = OriginalDate.UTC;
-                    Date.parse = OriginalDate.parse;
-                    Date.now = function() { return mockDate.getTime(); };
-                    Date.prototype = OriginalDate.prototype;
-                    
-                    // Display test mode indicator in UI
-                    const testModeIndicator = document.createElement('div');
-                    testModeIndicator.style.background = 'rgba(255, 255, 0, 0.2)';
-                    testModeIndicator.style.padding = '5px';
-                    testModeIndicator.style.textAlign = 'center';
-                    testModeIndicator.style.fontWeight = 'bold';
-                    testModeIndicator.innerHTML = `🧪 TEST MODE - Mock Date: ${mockDate.toDateString()}`;
-                    document.body.insertBefore(testModeIndicator, document.body.firstChild);
-                }
-            } catch (e) {
-                console.error("Failed to set mock date:", e);
-            }
-        }
-        
+
         // Generate a session ID client-side
         if (!sessionId) {
             sessionId = 'user_' + Math.random().toString(36).substring(2, 15);

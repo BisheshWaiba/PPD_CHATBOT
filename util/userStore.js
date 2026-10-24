@@ -3,13 +3,16 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
+import RevokedToken from '../models/RevokedToken.js';
 import { hashPassword, comparePassword } from './passwords.js';
 import { dataDir, isProduction } from './paths.js';
 
-// Where users live. Both stores expose the same three calls and never return a password.
+// Where users live. Both stores expose the same calls and never return a password.
 //   create({ name, email, password })  -> user, throws DuplicateEmailError
 //   authenticate(email, password)      -> user or null
 //   findById(id)                       -> user or null
+//   revokeToken(jti, exp)              -> remembers a signed-out token until exp (seconds)
+//   isTokenRevoked(jti)                -> true while that token must be refused
 //
 // - mongo: the real database (always used when MongoDB is connected).
 // - file:  data/users.json with bcrypt hashes. Development fallback for when MongoDB
@@ -65,6 +68,18 @@ const mongoStore = {
     if (!mongoose.isValidObjectId(id)) return null;
     const user = await User.findById(id);
     return user ? toPublic(user) : null;
+  },
+
+  async revokeToken(jti, exp) {
+    try {
+      await RevokedToken.create({ jti, expiresAt: new Date(exp * 1000) });
+    } catch (err) {
+      if (err?.code !== 11000) throw err; // already signed out
+    }
+  },
+
+  async isTokenRevoked(jti) {
+    return Boolean(await RevokedToken.exists({ jti }));
   }
 };
 
@@ -123,6 +138,23 @@ function createFileStore() {
     async findById(id) {
       const user = load().users.find(u => u.id === id);
       return user ? toPublic(user) : null;
+    },
+
+    // Signed-out tokens live in the same file as { jti: expiry in ms }. Entries that have
+    // expired are dropped on the next sign-out, so the list never grows without bound.
+    async revokeToken(jti, exp) {
+      const data = load();
+      data.revoked ||= {};
+      const now = Date.now();
+      for (const [id, expiresAt] of Object.entries(data.revoked)) {
+        if (expiresAt <= now) delete data.revoked[id];
+      }
+      data.revoked[jti] = exp * 1000;
+      save();
+    },
+
+    async isTokenRevoked(jti) {
+      return (load().revoked?.[jti] ?? 0) > Date.now();
     }
   };
 }

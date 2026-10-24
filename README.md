@@ -45,7 +45,14 @@ Open http://localhost:8004. If MongoDB is not reachable in development, accounts
 - **Passwords:** 8 to 72 bytes, hashed with bcrypt. Never stored or returned in plain text.
 - **Sessions:** the server signs a JWT (`JWT_EXPIRE`, default 7 days). The browser keeps it in
   `localStorage` when "Remember me" is ticked and in `sessionStorage` otherwise. Logging out
-  clears it, together with the check-in answers the chat saved in the browser.
+  clears it, together with the check-in answers the chat saved in the browser, and tells the
+  server to end that token, so a copy of it stops working at once. Only that sign-in ends: the
+  same account's other devices stay signed in. Ended tokens are remembered in the user store
+  until they would have expired anyway (so they survive a restart).
+- **Content-Security-Policy:** every response carries one. Scripts may only come from this
+  site and never inline, so put page code in a file under `public/js/` (see `public/js/pages/`)
+  and not in a `<script>` block or an `onclick=""` attribute: the browser will refuse it.
+  Inline styles and Google Fonts are allowed. In production the pages also refuse to be framed.
 - **Protected pages:** put `data-require-auth` on `<body>` and include `/js/auth.js`. The page
   stays hidden until the server confirms the session, then redirects to
   `/login.html?next=<page>` if it is not valid.
@@ -64,7 +71,8 @@ status code, so `response.ok` is enough to tell them apart. A success carries `"
 |---|---|---|---|
 | POST | `/api/v1/auth/register` | Public | `{ name, email, password }`. 201, 400 invalid, 409 email taken |
 | POST | `/api/v1/auth/login` | Public | `{ email, password }`. 200 with `token` and `user`, 401 for a wrong email or password |
-| GET | `/api/v1/auth/me` | Bearer token | The signed-in user. 401 if the token is missing, expired or invalid |
+| POST | `/api/v1/auth/logout` | Bearer token | Ends this token at once. 200, or 401 if it is already invalid or signed out |
+| GET | `/api/v1/auth/me` | Bearer token | The signed-in user. 401 if the token is missing, expired, invalid or signed out |
 | GET | `/api/v1/chatbot/greeting` | Bearer token | Starts a chat. Returns `sessionId` and the greeting |
 | POST | `/api/v1/chatbot/message` | Bearer token | `{ message }` with the `x-session-id` header. Returns `sessionId` and `response`. 400 if the message is missing, blank or over 1000 characters. 429 past 30 requests a minute per account |
 

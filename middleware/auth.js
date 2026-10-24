@@ -25,9 +25,16 @@ export const protect = async (req, res, next) => {
   if (!store) return fail(res, 503, 'Authentication is temporarily unavailable');
 
   try {
+    // A token that was signed out stops working at once, even though it has not expired.
+    // Tokens issued before sign-out existed carry no id and simply run until they expire.
+    if (decoded.jti && await store.isTokenRevoked(decoded.jti)) {
+      return fail(res, 401, 'You have been signed out. Please sign in again.');
+    }
+
     const user = await store.findById(decoded.id);
     if (!user) return fail(res, 401, 'User no longer exists');
     req.user = user;
+    req.token = decoded;
     return next();
   } catch (err) {
     console.error('Auth middleware error:', err.message);

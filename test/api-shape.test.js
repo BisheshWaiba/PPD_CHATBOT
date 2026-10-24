@@ -122,7 +122,7 @@ test('the 404 page only links to things that exist', async () => {
 });
 
 test('the pages call the versioned API', () => {
-  for (const file of ['public/js/auth.js', 'public/login.html', 'public/signup.html']) {
+  for (const file of ['public/js/auth.js', 'public/js/pages/login.js', 'public/js/pages/signup.js']) {
     const source = fs.readFileSync(path.join(root, file), 'utf8');
     assert.match(source, /\/api\/v1\/auth\//, file);
     assert.doesNotMatch(source, /['"`]\/api\/auth\//, file);

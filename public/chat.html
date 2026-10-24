@@ -584,18 +584,9 @@
     </div>
 
     <!-- Start every visit with a fresh chat session -->
-    <script>
-      localStorage.removeItem('chatSessionId');
-    </script>
+    <script src="/js/pages/chat-fresh-session.js"></script>
     <script src="/js/auth.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        // Reloading starts a fresh conversation from the greeting
-        document.getElementById('new-chat').addEventListener('click', function () {
-          window.location.reload();
-        });
-      });
-    </script>
+    <script src="/js/pages/chat.js"></script>
     <script src="/js/chatbot-client.js" type="module"></script>
   </body>
 </html>

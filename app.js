@@ -8,6 +8,24 @@ import { isProduction } from './util/paths.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// What a page may load. Scripts come only from this site and never inline, so markup that
+// gets injected into a page cannot run code. Inline styles stay allowed because the pages use
+// style attributes and <style> blocks. Fonts come from Google Fonts.
+const csp = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src https://fonts.gstatic.com",
+  "img-src 'self' data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'"
+];
+const developmentCsp = csp.join('; ');
+// Like X-Frame-Options below, framing is only refused in production
+const productionCsp = [...csp, "frame-ancestors 'none'"].join('; ');
+
 // Builds the Express app. Nothing is started here, so tests can use it directly.
 export function createApp() {
   const app = express();
@@ -22,7 +40,8 @@ export function createApp() {
   app.use((req, res, next) => {
     res.set({
       'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin'
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Content-Security-Policy': isProduction() ? productionCsp : developmentCsp
     });
     if (isProduction()) {
       // Stops other sites from framing the login page (clickjacking). Left off in development
