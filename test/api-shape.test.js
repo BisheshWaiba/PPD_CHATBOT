@@ -1,7 +1,5 @@
 // One shape for every API answer, real 404s, and the /api/v1 prefix. Run with: npm test
-//
-// Tests that need an answer from the Python chatbot are skipped when `python` is not available.
-import { test, before, after, afterEach } from 'node:test';
+import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
 import os from 'os';
@@ -19,22 +17,11 @@ delete process.env.CORS_ORIGIN;
 
 const { createApp } = await import('../app.js');
 const { initUserStore } = await import('../util/userStore.js');
-const { sessionKey } = await import('../util/chatSession.js');
-const { pythonAvailable } = await import('../util/python.js');
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const tempDir = path.join(root, 'temp');
-const needsPython = { skip: !pythonAvailable() && 'python is not available' };
-
-const originalPython = process.env.PYTHON;
-afterEach(() => {
-  if (originalPython === undefined) delete process.env.PYTHON;
-  else process.env.PYTHON = originalPython;
-});
 
 let server;
 let base;
-const usedKeys = [];
 
 before(async () => {
   initUserStore({ mongoConnected: false });
@@ -46,11 +33,6 @@ before(async () => {
 after(async () => {
   await new Promise(resolve => server.close(resolve));
   fs.rmSync(dataDir, { recursive: true, force: true });
-  for (const key of usedKeys) {
-    for (const name of [`state_${key}.json`, `message_${key}.txt`]) {
-      fs.rmSync(path.join(tempDir, name), { force: true });
-    }
-  }
 });
 
 const send = (route, { method = 'GET', body, raw, token, headers } = {}) =>
@@ -181,59 +163,25 @@ test('every kind of API failure has the same { success, message } shape', async 
     ['me with a bad token', send('/api/v1/auth/me', { token: 'not-a-token' }), 401],
     ['broken JSON body', send('/api/v1/auth/login', { method: 'POST', raw: '{bad json' }), 400],
     ['a request body that is too large', send('/api/v1/auth/login', { method: 'POST', raw: JSON.stringify({ x: 'a'.repeat(200_000) }) }), 413],
-    ['chat without a token', send('/api/v1/chatbot/greeting'), 401],
-    ['chat with no message', send('/api/v1/chatbot/message', { method: 'POST', body: {}, token: account.token }), 400]
+    ['saved chats without a token', send('/api/v1/conversations'), 401],
+    ['the AI conversation without a token', send('/api/v1/assistant/reply', { method: 'POST', body: { messages: [] } }), 401],
+    ['deleting the account with no password', send('/api/v1/account', { method: 'DELETE', body: {}, token: account.token }), 400]
   ];
   for (const [label, request, status] of cases) {
     await assertErrorShape(await request, status, label);
   }
 });
 
-// --- Chat answers --------------------------------------------------------------------------
+// --- The removed chat API ------------------------------------------------------------------
 
-test('chat answers say success: true next to the session id and reply', needsPython, async () => {
+test('the old server-side chat API is gone: a JSON 404 under both prefixes, with or without a sign-in', async () => {
   const account = await register();
-
-  const greeting = await send('/api/v1/chatbot/greeting', { token: account.token });
-  assert.equal(greeting.status, 200);
-  const first = await greeting.json();
-  assert.equal(first.success, true);
-  assert.match(first.sessionId, /^[0-9a-f-]{36}$/);
-  assert.match(first.response, /Sutkeri/);
-  usedKeys.push(sessionKey(account.id, first.sessionId));
-
-  const message = await send('/api/v1/chatbot/message', {
-    method: 'POST',
-    body: { message: 'hello' },
-    token: account.token,
-    headers: { 'x-session-id': first.sessionId }
-  });
-  assert.equal(message.status, 200);
-  const reply = await message.json();
-  assert.equal(reply.success, true);
-  assert.equal(reply.sessionId, first.sessionId);
-  assert.equal(typeof reply.response, 'string');
-});
-
-test('when the chatbot cannot run, chat answers are a 503 with the common shape, not a friendly 200', async () => {
-  const account = await register();
-  process.env.PYTHON = 'no-such-python-command';
-
-  const greeting = await send('/api/v1/chatbot/greeting', { token: account.token });
-  const greetingBody = await assertErrorShape(greeting, 503, 'greeting');
-  assert.match(greetingBody.message, /not available/);
-
-  const sessionId = randomUUID();
-  const key = sessionKey(account.id, sessionId);
-  usedKeys.push(key);
-  const message = await send('/api/v1/chatbot/message', {
-    method: 'POST',
-    body: { message: 'hello' },
-    token: account.token,
-    headers: { 'x-session-id': sessionId }
-  });
-  await assertErrorShape(message, 503, 'message');
-
-  // The failed request does not leave its message file behind
-  assert.equal(fs.existsSync(path.join(tempDir, `message_${key}.txt`)), false);
+  for (const prefix of ['/api/v1', '/api']) {
+    for (const [route, method] of [['/chatbot/greeting', 'GET'], ['/chatbot/message', 'POST']]) {
+      for (const token of [undefined, account.token]) {
+        const body = await assertErrorShape(await send(prefix + route, { method, body: method === 'POST' ? { message: 'hello' } : undefined, token }), 404, prefix + route);
+        assert.equal(body.message, 'Not found');
+      }
+    }
+  }
 });

@@ -1,7 +1,7 @@
 {
   "name": "postpartum-care-platform",
   "version": "1.0.0",
-  "description": "A platform with Node.js backend and Python chatbot for postpartum care",
+  "description": "Postpartum care platform: a Node.js app with a guided check-in chat, an optional AI conversation and a results report",
   "main": "server.js",
   "type": "module",
   "engines": {
@@ -21,9 +21,7 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.3",
-    "node-fetch": "^3.3.2",
-    "nodemailer": "^10.2.1",
-    "uuid": "^11.1.0"
+    "nodemailer": "^10.2.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

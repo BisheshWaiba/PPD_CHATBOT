@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('send-button');
     if (messageInput) messageInput.maxLength = 500;
     
-    let sessionId = localStorage.getItem('chatSessionId') || null;
     let isProcessing = false;
 
     // The AI conversation (/api/v1/assistant). It is only on when the server has an API key. If it
@@ -232,11 +231,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log("🔍 DEBUG MODE ENABLED - Detailed logging will be shown");
         }
 
-        // Generate a session ID client-side
-        if (!sessionId) {
-            sessionId = 'user_' + Math.random().toString(36).substring(2, 15);
-            localStorage.setItem('chatSessionId', sessionId);
-        }
         // Display the improved welcome and consent message with hand wave emoji
         addMessage("Hi there! 👋\n\nThank you for being here. Before we start, please take a moment to review:\n\nThis chatbot provides mental health support and helpful information for mothers after childbirth.\n\n This is not a substitute for professional help. If you're in crisis, please reach out to a healthcare provider.\n\nI can only help with postpartum wellbeing, so I won't be able to answer other questions.\n\nYour chats are saved to your account so you can look back at them later. You can delete them any time from History.\n\n" + (assistantOn ? "When we talk freely, an AI model writes my replies. It sees your latest messages, which are sent to the AI provider (Anthropic) to do that, so please don't share your full name, phone number or address.\n\n" : "") + "If you're okay with this, type 'continue' to begin chatting. 💬", false, false, {
             actions: [{ label: 'Continue', run: () => handleUserMessage('continue', 'Continue') }]

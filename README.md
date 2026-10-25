@@ -2,20 +2,18 @@
 
 [![Tests](https://github.com/BisheshWaiba/PPD_CHATBOT/actions/workflows/test.yml/badge.svg)](https://github.com/BisheshWaiba/PPD_CHATBOT/actions/workflows/test.yml)
 
-An Express.js app with JWT authentication, MongoDB, and a postpartum support chatbot.
+An Express.js app with JWT authentication, MongoDB, and a postpartum support chat that runs in the browser.
 
 ## Features
 
 - Account registration and sign-in (bcrypt-hashed passwords, JWT sessions)
-- Protected pages (the assistant and the results report) and a protected chatbot API
+- Protected pages (the assistant, saved chats and the results report) and protected chat-history and account APIs
 - Sign-in rate limiting, security headers, and no secrets in the source code
 - MongoDB with Mongoose, plus a local development fallback when MongoDB is unavailable
 
 ## Prerequisites
 
 - Node.js 22 or higher (the tests run on 22 and 24; `npm test` needs at least Node 21)
-- Python 3 for the chat assistant (no extra packages needed). The server warns on start-up if it
-  cannot find it; set `PYTHON` in `.env` to the command or full path if it is not on your PATH.
 - A MongoDB database (Atlas or local). See `MongoDB-Setup-Guide.md`.
 
 ## Setup
@@ -123,10 +121,6 @@ status code, so `response.ok` is enough to tell them apart. A success carries `"
 | POST | `/api/v1/auth/reset-password` | Public | `{ token, password }` from the emailed link. 200, or 400 with one message for every way a link can be bad (expired, used, made up) and for a weak password (the link is kept) |
 | POST | `/api/v1/auth/verify-email` | Public | `{ token }` from the emailed link. 200 or 400. Opening the page does not confirm anything; the page asks for a click |
 | POST | `/api/v1/auth/resend-verification` | Bearer token | Sends the confirmation email again. 3 per hour, 503 when the server has no email |
-| GET | `/api/v1/chatbot/greeting` | Bearer token | Starts a chat. Returns `sessionId` and the greeting |
-| POST | `/api/v1/chatbot/message` | Bearer token | `{ message }` with the `x-session-id` header. Returns `sessionId` and `response`. 400 if the message is missing, blank or over 1000 characters. 429 past 30 requests a minute per account |
-
-Chat requests answer 503 when the Python chatbot cannot run (not installed, crashed or too slow).
 An address that is not a page or an API path is a real 404 (a page for browsers, JSON under `/api`).
 
 Saved chats (all need a bearer token, and each account only ever reaches its own: a chat that is
@@ -146,11 +140,7 @@ Your account and your data (bearer token):
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/v1/account/export` | Everything stored about you, as one downloadable JSON file: your details and the full text of every chat. The answer is the file itself, not wrapped in `{ success, data }`. No password or hash is in it |
-| DELETE | `/api/v1/account` | `{ password }`. Deletes the account, every saved chat and the chatbot's session files for it, and every sign-in stops working at once. 400 without a password, **403** for a wrong one (not 401, so the page does not sign you out for a typo), 429 after 5 wrong passwords in 15 minutes |
-
-Chat sessions belong to the account that opened them: another account sending the same session
-id gets its own conversation. Change the request limit with `CHAT_RATE_LIMIT`. Conversation files in
-`temp/` are removed automatically once they have been idle for 24 hours.
+| DELETE | `/api/v1/account` | `{ password }`. Deletes the account and every saved chat, and every sign-in stops working at once. 400 without a password, **403** for a wrong one (not 401, so the page does not sign you out for a typo), 429 after 5 wrong passwords in 15 minutes |
 
 ```bash
 curl -X POST http://localhost:8004/api/v1/auth/register \
@@ -258,9 +248,8 @@ npm test
 
 Runs the whole suite (authentication, chat, saved history, the AI conversation, security and
 design checks) against the local user store. To run the same tests against a real MongoDB, set
-`TEST_MONGO_URI` (use a throw-away database, the tests drop it). Tests that start the Python
-chatbot skip themselves when Python is not installed. No Anthropic account is needed: the AI tests
-use a fake of its API.
+`TEST_MONGO_URI` (use a throw-away database, the tests drop it). No Anthropic account is needed:
+the AI tests use a fake of its API.
 
 ### Automatic checks on GitHub
 
@@ -279,9 +268,9 @@ npm audit --audit-level=high
 ## Your users' data
 
 What is stored, and where: each account's name, email and a bcrypt hash of the password
-(`data/users.json` or MongoDB), the full text of its saved chats (`data/history.json` or MongoDB),
-and small chatbot session files in `temp/`. Everything is deleted when the account is, and chats
-can also expire (`CHAT_HISTORY_DAYS`).
+(`data/users.json` or MongoDB) and the full text of its saved chats (`data/history.json` or
+MongoDB). Everything is deleted when the account is, and chats can also expire
+(`CHAT_HISTORY_DAYS`).
 
 What is **not** done yet: the files in `data/` are plain text on disk, so protect the machine (and
 backups) they live on, or use MongoDB with encryption at rest. If you publish this, write a privacy
@@ -298,38 +287,3 @@ through your mail provider) and, when the AI conversation is on, the AI provider
 ## License
 
 MIT
-
-# Postpartum Support Chatbot
-
-## Project Overview
-This project implements a conversational chatbot designed to provide support to women in the postpartum period. The chatbot guides users through a series of questions to assess their mental health status and provides personalized recommendations based on their responses.
-
-## Recent Improvements
-
-### Chatbot Interface Enhancements
-1. **Fixed Repetitive Greeting Issue**: Resolved a problem where the chatbot would repeatedly display the greeting message instead of progressing through the conversation flow.
-2. **Improved HTML Report Rendering**: Updated the client-side code to properly render HTML content in the chat interface, allowing for rich formatting of the assessment report.
-3. **Added Dedicated Styling**: Created a specialized CSS file for the report output, improving readability and visual appeal.
-
-### Report Formatting Improvements
-1. **Enhanced Visual Layout**: Redesigned the postpartum assessment report with clear sections, better typography, and visual hierarchy.
-2. **Risk Level Indicators**: Added color-coded indicators for risk levels (low, moderate, high) to highlight important information.
-3. **Responsive Design**: Ensured the report displays correctly on various screen sizes.
-4. **Print Functionality**: Added print-specific styling to allow users to easily print their assessment report.
-
-### Technical Implementation
-1. **HTML Content Handling**: Modified the client-side message handling to detect and properly render HTML content from the server.
-2. **Server-Side Report Generation**: Updated the report generation logic to produce semantically structured HTML with appropriate CSS classes.
-3. **Session Management**: Improved the handling of chat sessions to ensure proper conversation flow.
-
-## Usage
-1. Navigate to the chat interface
-2. Answer the chatbot's questions about your postpartum experience
-3. Receive a personalized assessment report with recommendations
-4. Save or print your report for future reference or to share with healthcare providers
-
-## Technical Details
-- **Frontend**: HTML, CSS, JavaScript
-- **Backend**: Node.js, Express
-- **Session Management**: Server-side state with client-side session ID tracking
-- **Report Generation**: Dynamic HTML content with CSS styling

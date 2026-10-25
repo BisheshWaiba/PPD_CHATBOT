@@ -9,13 +9,6 @@ node_modules/
 # Local development data (user file and generated JWT secret)
 data/
 
-# Runtime files written by the chatbot
-temp/
-
-# Python
-__pycache__/
-*.pyc
-
 # OS / editor
 .DS_Store
 Thumbs.db

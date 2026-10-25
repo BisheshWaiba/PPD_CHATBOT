@@ -227,9 +227,12 @@ test('an unsigned "alg: none" token is refused', async () => {
 
 // ------------------------------------------------------------ rest of the app
 
-test('the chatbot API needs a signed-in user', async () => {
-  assert.equal((await api('/api/chatbot/greeting').then(json)).status, 401);
-  assert.equal((await api('/api/chatbot/message', { method: 'POST', body: { message: 'hi' } }).then(json)).status, 401);
+test('the chat history, AI and account APIs need a signed-in user', async () => {
+  assert.equal((await api('/api/conversations').then(json)).status, 401);
+  assert.equal((await api('/api/conversations', { method: 'POST' }).then(json)).status, 401);
+  assert.equal((await api('/api/assistant').then(json)).status, 401);
+  assert.equal((await api('/api/assistant/reply', { method: 'POST', body: { messages: [] } }).then(json)).status, 401);
+  assert.equal((await api('/api/account/export').then(json)).status, 401);
 });
 
 test('unknown API paths return JSON 404', async () => {

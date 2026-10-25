@@ -3,7 +3,6 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
-import chatbotRoutes from './routes/chatbot.js';
 import historyRoutes from './routes/history.js';
 import assistantRoutes from './routes/assistant.js';
 import accountRoutes from './routes/account.js';
@@ -85,7 +84,6 @@ export function createApp() {
   // their rate limits), so older clients keep working.
   const api = express.Router();
   api.use('/auth', authRoutes);
-  api.use('/chatbot', chatbotRoutes);
   api.use('/conversations', historyRoutes);
   api.use('/assistant', assistantRoutes);
   api.use('/account', accountRoutes);

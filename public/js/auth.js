@@ -11,7 +11,8 @@
   var USER_KEY = 'user';
 
   // What the chat keeps in this browser about a person's check-in. Cleared on logout so
-  // the next person on a shared computer cannot open the results.
+  // the next person on a shared computer cannot open the results. ("chatSessionId" is an old key
+  // that nothing writes any more; it is cleared for browsers that still have it.)
   var CHECKIN_KEYS = [
     'chatSessionId', 'childBirthdate', 'epdsAnswers', 'epdsCompletedAt', 'epdsCurrentQuestion',
     'epdsLanguage', 'epdsScore', 'isLessThanTwoWeeks', 'maritalStatus', 'userAge',

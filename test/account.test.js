@@ -8,7 +8,6 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { randomUUID } from 'crypto';
-import { fileURLToPath } from 'url';
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mom-account-test-'));
 process.env.JWT_SECRET = 'test-secret-'.padEnd(48, 'x');
@@ -26,11 +25,8 @@ const { createApp } = await import('../app.js');
 const { initUserStore, getUserStore } = await import('../util/userStore.js');
 const { getHistoryStore, sweepHistory, retentionDays } = await import('../util/historyStore.js');
 const { signToken } = await import('../util/jwt.js');
-const { ownerPrefix } = await import('../util/chatSession.js');
-const { removeChatFilesFor } = await import('../util/tempCleanup.js');
 const mongoose = (await import('mongoose')).default;
 
-const tempDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'temp');
 const PASSWORD = 'a-long-password';
 
 let server;
@@ -195,25 +191,6 @@ test('the right password deletes the account, every chat, and ends every sign-in
   assert.equal((await getHistoryStore().get(other.id, othersChat)).messages[0].text, 'not yours to touch');
 });
 
-test('the chatbot\'s leftover session files for the account go too, and only that account\'s', async () => {
-  const account = await newAccount();
-  const other = await newAccount();
-  fs.mkdirSync(tempDir, { recursive: true });
-  const files = [
-    `state_${ownerPrefix(account.id)}_session-a.json`, `message_${ownerPrefix(account.id)}_session-a.txt`,
-    `state_${ownerPrefix(other.id)}_session-b.json`
-  ];
-  files.forEach(name => fs.writeFileSync(path.join(tempDir, name), '{}'));
-  try {
-    assert.equal((await deleteAccount(account, PASSWORD)).status, 200);
-    assert.equal(fs.existsSync(path.join(tempDir, files[0])), false);
-    assert.equal(fs.existsSync(path.join(tempDir, files[1])), false);
-    assert.equal(fs.existsSync(path.join(tempDir, files[2])), true, 'another account\'s file stays');
-  } finally {
-    files.forEach(name => fs.rmSync(path.join(tempDir, name), { force: true }));
-  }
-});
-
 test('the email can be used again afterwards, and the new account starts empty', async () => {
   const account = await newAccount();
   await saveChat(account, [{ role: 'user', text: 'old words' }]);
@@ -260,23 +237,6 @@ test('a right password after a few wrong ones starts the count again', async () 
 
 test('deleting an unknown user is a no-op', async () => {
   assert.equal(await getUserStore().deleteUser(useMongo ? '507f1f77bcf86cd799439011' : randomUUID()), false);
-});
-
-// --- Cleaning up session files directly --------------------------------------------------------
-
-test('only the named account\'s chatbot files are removed, and nothing else in the folder', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mom-session-files-'));
-  try {
-    const mine = ownerPrefix('user-1');
-    const theirs = ownerPrefix('user-2');
-    const files = [`state_${mine}_a.json`, `message_${mine}_a.txt`, `state_${theirs}_a.json`, 'notes.txt', `state_${mine}.json`];
-    files.forEach(name => fs.writeFileSync(path.join(dir, name), '{}'));
-    assert.equal(removeChatFilesFor(dir, 'user-1'), 2);
-    assert.deepEqual(fs.readdirSync(dir).sort(), [`state_${mine}.json`, `state_${theirs}_a.json`, 'notes.txt'].sort());
-    assert.equal(removeChatFilesFor(path.join(dir, 'no-such-folder'), 'user-1'), 0);
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
 });
 
 // --- Letting old chats expire ------------------------------------------------------------------

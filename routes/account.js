@@ -3,8 +3,6 @@ import { protect } from '../middleware/auth.js';
 import { getUserStore } from '../util/userStore.js';
 import { getHistoryStore } from '../util/historyStore.js';
 import { RateLimiter } from '../util/rateLimit.js';
-import { removeChatFilesFor } from '../util/tempCleanup.js';
-import { tempDir } from '../util/paths.js';
 
 const router = express.Router();
 
@@ -68,10 +66,9 @@ router.delete('/', wrap(async (req, res) => {
   }
   wrongPasswords.reset(req.user.id);
 
-  // The saved chats and the chatbot's session files first, the account last: if anything stops
-  // halfway the person can simply try again, and nothing is left behind without an owner
+  // The saved chats first, the account last: if anything stops halfway the person can simply
+  // try again, and nothing is left behind without an owner
   await history.removeAll(req.user.id);
-  removeChatFilesFor(tempDir(), req.user.id);
   await store.deleteUser(req.user.id);
 
   // Every sign-in of this account (this token included) stops working at once, because the

@@ -101,7 +101,9 @@ test('signing out ends the token at once', async () => {
 test('a signed-out token is refused everywhere, not only on /me', async () => {
   const { token } = await newAccount();
   await api('/api/v1/auth/logout', { method: 'POST', token });
-  assert.equal((await api('/api/v1/chatbot/greeting', { token })).status, 401);
+  for (const route of ['/api/v1/conversations', '/api/v1/account/export', '/api/v1/assistant']) {
+    assert.equal((await api(route, { token })).status, 401, route);
+  }
   assert.equal((await api('/api/v1/auth/logout', { method: 'POST', token })).status, 401);
 });
 
