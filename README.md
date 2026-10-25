@@ -1,5 +1,7 @@
 # Sutkeri: Postpartum Care Platform
 
+[![Tests](https://github.com/BisheshWaiba/PPD_CHATBOT/actions/workflows/test.yml/badge.svg)](https://github.com/BisheshWaiba/PPD_CHATBOT/actions/workflows/test.yml)
+
 An Express.js app with JWT authentication, MongoDB, and a postpartum support chatbot.
 
 ## Features
@@ -11,7 +13,7 @@ An Express.js app with JWT authentication, MongoDB, and a postpartum support cha
 
 ## Prerequisites
 
-- Node.js 18 or higher
+- Node.js 22 or higher (the tests run on 22 and 24; `npm test` needs at least Node 21)
 - Python 3 for the chat assistant (no extra packages needed). The server warns on start-up if it
   cannot find it; set `PYTHON` in `.env` to the command or full path if it is not on your PATH.
 - A MongoDB database (Atlas or local). See `MongoDB-Setup-Guide.md`.
@@ -193,8 +195,25 @@ to run them.
 npm test
 ```
 
-Runs the authentication tests against the local user store. To run the same tests against a
-real MongoDB, set `TEST_MONGO_URI` (use a throw-away database, the tests drop it).
+Runs the whole suite (authentication, chat, saved history, the AI conversation, security and
+design checks) against the local user store. To run the same tests against a real MongoDB, set
+`TEST_MONGO_URI` (use a throw-away database, the tests drop it). Tests that start the Python
+chatbot skip themselves when Python is not installed. No Anthropic account is needed: the AI tests
+use a fake of its API.
+
+### Automatic checks on GitHub
+
+`.github/workflows/test.yml` runs the suite on Node 22 and 24 for every push to `main` and every
+pull request, plus a separate job that fails when `npm audit` finds a high or critical
+vulnerability in the app's dependencies. It also runs every Monday, because a new advisory can be
+published for a package you already use without any change to your code. The badge at the top of
+this file shows whether `main` is passing. To run the same checks yourself:
+
+```bash
+npm ci          # installs exactly what package-lock.json says
+npm test
+npm audit --audit-level=high
+```
 
 ## Production checklist
 

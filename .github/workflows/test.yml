@@ -1,0 +1,68 @@
+name: Tests
+
+# Runs the whole test suite on every push to main and on every pull request, and once a week.
+# The weekly run is for the security check: a new advisory can be published for a package you
+# already use without you changing any code.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+# The workflow only needs to read the code
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an older, still-running check pointless
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      # If one Node version fails, still see how the other one does
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # The Python chatbot is part of the app and has tests of its own. It needs no packages.
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      # npm ci installs exactly what package-lock.json says and fails if it is out of date
+      # with package.json, which is what you want from a check
+      - run: npm ci
+
+      # The spec reporter prints one readable line per test in the log
+      - run: npm test -- --test-reporter=spec
+
+  audit:
+    name: Dependency vulnerabilities
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Fails on any known high or critical vulnerability in the packages the app depends on
+      - run: npm audit --audit-level=high
