@@ -72,11 +72,13 @@
     storage.setItem(USER_KEY, JSON.stringify(user));
   }
 
-  function logout(redirectTo) {
+  // options.sessionAlreadyEnded: the server has already ended this session (the account was
+  // just deleted), so there is nothing to tell it.
+  function logout(redirectTo, options) {
     // Tell the server to end this token, so a copy of it stops working too. Best effort:
     // signing out in this browser never waits for the answer, and never fails because of it.
     var token = getToken();
-    if (token) {
+    if (token && !(options && options.sessionAlreadyEnded)) {
       try {
         fetch('/api/v1/auth/logout', {
           method: 'POST',
@@ -212,11 +214,16 @@
     logoutButton.textContent = 'Log out';
     logoutButton.addEventListener('click', function () { logout('/'); });
 
+    var accountLink = document.createElement('a');
+    accountLink.href = '/account.html';
+    accountLink.className = 'profile-dropdown-item';
+    accountLink.textContent = 'Account & privacy';
+
     var historyLink = document.createElement('a');
     historyLink.href = '/history.html';
     historyLink.className = 'profile-dropdown-item';
     historyLink.textContent = 'Chat history';
-    dropdown.append(meta, historyLink, logoutButton);
+    dropdown.append(meta, accountLink, historyLink, logoutButton);
 
     if (section.dataset.wired) return;
     section.dataset.wired = 'true';

@@ -1,4 +1,5 @@
 import { plainText, formatWhen, countLabel } from '/js/history-format.js';
+import { confirmable } from '/js/confirm-button.js';
 
 // The History page: the list of saved chats, and one saved chat at a time (?c=<id>).
 // Everything is written with textContent, so nothing a person or the assistant said is ever
@@ -16,37 +17,14 @@ function el(tag, className, text) {
   return node;
 }
 
-// A button that asks for a second click before doing something that cannot be undone
-function confirmable(button, { idle, armedText, question, status, run }) {
-  let timer = null;
-
-  const reset = () => {
-    clearTimeout(timer);
-    timer = null;
-    button.textContent = idle;
-    button.classList.remove('is-armed');
-  };
-
-  button.addEventListener('blur', () => { if (timer) { reset(); status.textContent = ''; } });
-  button.addEventListener('click', async () => {
-    if (!timer) {
-      button.textContent = armedText;
-      button.classList.add('is-armed');
-      status.textContent = question;
-      timer = setTimeout(() => { reset(); status.textContent = ''; }, 6000);
-      return;
-    }
-    reset();
-    button.disabled = true;
-    try {
-      await run();
-    } finally {
-      button.disabled = false;
-    }
-  });
-}
-
 // ---------- The list ----------
+
+// Chats can be set to expire. When they do, say so plainly.
+function showRetention(days) {
+  const note = $('retention-note');
+  note.hidden = !days;
+  if (days) note.textContent = `Chats are deleted automatically ${days} day${days === 1 ? '' : 's'} after their last message.`;
+}
 
 async function showList(note) {
   $('list-view').hidden = false;
@@ -63,7 +41,9 @@ async function showList(note) {
     const response = await request('GET', '/api/v1/conversations');
     if (response.status === 401) return; // the shared script is already sending the person to sign in
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    chats = (await response.json()).data;
+    const body = await response.json();
+    chats = body.data;
+    showRetention(body.retentionDays);
   } catch (error) {
     status.textContent = '';
     const retry = el('button', 'pill', 'Try again');

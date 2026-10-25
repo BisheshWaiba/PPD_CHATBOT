@@ -13,6 +13,7 @@ import { dataDir, isProduction } from './paths.js';
 //   findById(id)                       -> user or null
 //   revokeToken(jti, exp)              -> remembers a signed-out token until exp (seconds)
 //   isTokenRevoked(jti)                -> true while that token must be refused
+//   deleteUser(id)                     -> true if the account existed and is now gone
 //
 // - mongo: the real database (always used when MongoDB is connected).
 // - file:  data/users.json with bcrypt hashes. Development fallback for when MongoDB
@@ -68,6 +69,11 @@ const mongoStore = {
     if (!mongoose.isValidObjectId(id)) return null;
     const user = await User.findById(id);
     return user ? toPublic(user) : null;
+  },
+
+  async deleteUser(id) {
+    if (!mongoose.isValidObjectId(id)) return false;
+    return (await User.deleteOne({ _id: id })).deletedCount > 0;
   },
 
   async revokeToken(jti, exp) {
@@ -138,6 +144,15 @@ function createFileStore() {
     async findById(id) {
       const user = load().users.find(u => u.id === id);
       return user ? toPublic(user) : null;
+    },
+
+    async deleteUser(id) {
+      const data = load();
+      const before = data.users.length;
+      data.users = data.users.filter(user => user.id !== id);
+      if (data.users.length === before) return false;
+      save();
+      return true;
     },
 
     // Signed-out tokens live in the same file as { jti: expiry in ms }. Entries that have

@@ -93,6 +93,13 @@ not yours is a 404, exactly like one that does not exist):
 | DELETE | `/api/v1/conversations/:id` | Deletes one chat |
 | DELETE | `/api/v1/conversations` | Deletes all of your chats |
 
+Your account and your data (bearer token):
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v1/account/export` | Everything stored about you, as one downloadable JSON file: your details and the full text of every chat. The answer is the file itself, not wrapped in `{ success, data }`. No password or hash is in it |
+| DELETE | `/api/v1/account` | `{ password }`. Deletes the account, every saved chat and the chatbot's session files for it, and every sign-in stops working at once. 400 without a password, **403** for a wrong one (not 401, so the page does not sign you out for a typo), 429 after 5 wrong passwords in 15 minutes |
+
 Chat sessions belong to the account that opened them: another account sending the same session
 id gets its own conversation. Change the request limit with `CHAT_RATE_LIMIT`. Conversation files in
 `temp/` are removed automatically once they have been idle for 24 hours.
@@ -122,6 +129,12 @@ curl http://localhost:8004/api/v1/auth/me -H "Authorization: Bearer YOUR_TOKEN_H
   said that says something, not "Continue". What is saved is the text of the conversation, kept in
   `data/history.json` (git-ignored) or in MongoDB, and only the signed-in owner can read or delete it.
   Chat history is separate from logging out, which clears the browser's copy but keeps the saved chats.
+- **Account & privacy:** `/account.html` (account menu, or the link on the History page) shows what is
+  kept about you, downloads all of it as a file, and deletes the account. Deleting asks for the
+  password again and then for a second click, removes the account and every saved chat for good,
+  signs you out and clears this browser's copy of the check-in. Set `CHAT_HISTORY_DAYS` to also
+  delete each chat that many days after its last message (off by default; the History and Account
+  pages say so when it is on).
 - **Chat answers:** every numbered question is also offered as tappable buttons (a tap does exactly
   what typing the number does), and if something goes wrong the chat says so with a "Try again"
   button.
@@ -214,6 +227,18 @@ npm ci          # installs exactly what package-lock.json says
 npm test
 npm audit --audit-level=high
 ```
+
+## Your users' data
+
+What is stored, and where: each account's name, email and a bcrypt hash of the password
+(`data/users.json` or MongoDB), the full text of its saved chats (`data/history.json` or MongoDB),
+and small chatbot session files in `temp/`. Everything is deleted when the account is, and chats
+can also expire (`CHAT_HISTORY_DAYS`).
+
+What is **not** done yet: the files in `data/` are plain text on disk, so protect the machine (and
+backups) they live on, or use MongoDB with encryption at rest. There is no email-based account
+recovery. If you publish this, write a privacy notice that mentions the saved chats and, when the AI
+conversation is on, the AI provider.
 
 ## Production checklist
 

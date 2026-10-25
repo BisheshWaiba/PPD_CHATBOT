@@ -7,7 +7,8 @@ import { createHash } from 'crypto';
 //
 // The user id is hashed so the key only contains safe file-name characters, whatever the store
 // uses for ids (a UUID for the user file, an ObjectId for MongoDB).
+export const ownerPrefix = userId => createHash('sha256').update(String(userId)).digest('hex').slice(0, 16);
+
 export function sessionKey(userId, sessionId) {
-  const owner = createHash('sha256').update(String(userId)).digest('hex').slice(0, 16);
-  return `${owner}_${sessionId}`;
+  return `${ownerPrefix(userId)}_${sessionId}`;
 }

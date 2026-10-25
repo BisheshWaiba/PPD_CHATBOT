@@ -1,8 +1,15 @@
 document.addEventListener('DOMContentLoaded', function () {
   // Where to go after signing in (set when a protected page sent the user here).
   // Only same-site paths are accepted.
-  const next = MOMAuth.safeNext(new URLSearchParams(window.location.search).get('next'));
-  if (next) document.getElementById('login-notice').hidden = false;
+  const params = new URLSearchParams(window.location.search);
+  const next = MOMAuth.safeNext(params.get('next'));
+  const notice = document.getElementById('login-notice');
+  if (params.get('deleted') === '1') {
+    notice.textContent = 'Your account and everything saved with it have been deleted.';
+    notice.hidden = false;
+  } else if (next) {
+    notice.hidden = false;
+  }
 
   // Already signed in: skip the form
   if (MOMAuth.redirectIfAuthenticated('/')) return;

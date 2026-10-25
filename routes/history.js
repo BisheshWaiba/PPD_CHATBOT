@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
-import { getHistoryStore, ChatFullError, TooManyChatsError } from '../util/historyStore.js';
+import { getHistoryStore, ChatFullError, TooManyChatsError, retentionDays } from '../util/historyStore.js';
 import { validateHistoryEntries } from '../util/validation.js';
 import { RateLimiter } from '../util/rateLimit.js';
 
@@ -47,7 +47,8 @@ function allowWrite(req, res) {
 // @desc    The signed-in user's saved chats, most recently active first
 router.get('/', wrap(async (req, res) => {
   const chats = await getHistoryStore().list(req.user.id);
-  res.json({ success: true, data: chats });
+  // retentionDays: chats are deleted this many days after their last message (0 = never)
+  res.json({ success: true, data: chats, retentionDays: retentionDays() });
 }));
 
 // @route   POST /api/v1/conversations

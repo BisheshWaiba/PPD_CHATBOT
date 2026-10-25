@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Sutkeri — Account &amp; Privacy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background: var(--ground);
+      }
+
+      .account-page {
+        flex: 1;
+        padding: 48px 0 72px;
+      }
+
+      .account-wrap {
+        max-width: 820px;
+      }
+
+      .account-intro h1 {
+        margin-bottom: 10px;
+        font-size: clamp(30px, 4vw, 40px);
+        line-height: 1.1;
+      }
+
+      .account-intro p {
+        max-width: 620px;
+        font-size: 18px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+
+      .panel {
+        margin-top: 24px;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--surface);
+      }
+
+      .panel h2 {
+        margin-bottom: 12px;
+        font-size: 22px;
+      }
+
+      .panel p {
+        margin: 0 0 14px;
+        font-size: 16px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+
+      .panel p:last-child {
+        margin-bottom: 0;
+      }
+
+      .panel-danger {
+        border-color: #E3A9B9;
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 8px 24px;
+        margin: 0 0 18px;
+      }
+
+      .facts dt {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink-soft);
+      }
+
+      .facts dd {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+
+      .text-link {
+        font-weight: 600;
+        color: var(--berry-dark);
+        text-decoration: underline;
+      }
+
+      .status {
+        min-height: 1.5em;
+        margin: 14px 0 0;
+        font-size: 16px;
+        color: var(--ink-soft);
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 420px;
+        margin-bottom: 16px;
+      }
+
+      .field label {
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .field input {
+        min-width: 0;
+        height: 56px;
+        padding: 0 18px;
+        border: 1.5px solid #8E7A98;
+        border-radius: 16px;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: 17px;
+      }
+
+      .field input:focus {
+        border-color: var(--berry);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 48px;
+        padding: 0 24px;
+        border: 1.5px solid var(--berry);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--berry-dark);
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .pill:hover {
+        background: var(--blush);
+      }
+
+      .pill[disabled] {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      /* A delete button asks for a second click, and shows that it is waiting */
+      .pill.is-armed {
+        background: var(--berry-dark);
+        border-color: var(--berry-dark);
+        color: #FFFFFF;
+      }
+
+      .account-footer {
+        padding: 28px 0;
+      }
+
+      .account-footer .footer-copyright {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      @media (max-width: 600px) {
+        .account-page {
+          padding: 32px 0 56px;
+        }
+
+        .panel {
+          padding: 22px 20px;
+        }
+
+        .facts {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+
+        .facts dd {
+          margin-bottom: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body data-require-auth>
+    <!-- Shared icons -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <symbol id="mom-mark" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="18" fill="#B83A62"/>
+        <circle cx="18" cy="18" r="8.5" fill="none" stroke="#FCE3D0" stroke-width="3"/>
+        <circle cx="18" cy="18" r="2.8" fill="#FCE3D0"/>
+      </symbol>
+    </svg>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="/" class="logo">
+          <svg class="logo-mark" aria-hidden="true"><use href="#mom-mark"/></svg>
+          <span class="logo-text">Sutkeri</span>
+        </a>
+
+        <nav class="nav-links" aria-label="Main">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/aboutus.html" class="nav-link">About</a>
+          <a href="/chat.html" class="nav-link">Assistant</a>
+          <div class="auth-buttons">
+            <a href="/login.html" class="login-btn">Log in</a>
+            <a href="/signup.html" class="signup-btn">Sign up</a>
+          </div>
+          <div class="profile-section">
+            <button type="button" class="profile-icon" aria-label="Account menu" aria-haspopup="true"></button>
+            <div class="profile-dropdown"></div>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="account-page">
+      <div class="container account-wrap">
+        <div class="account-intro">
+          <h1>Account &amp; privacy</h1>
+          <p>What Sutkeri keeps about you, how to take a copy with you, and how to delete it all.</p>
+        </div>
+
+        <section class="panel" aria-labelledby="keep-title">
+          <h2 id="keep-title">What we keep</h2>
+          <dl class="facts">
+            <dt>Name</dt><dd id="fact-name">…</dd>
+            <dt>Email</dt><dd id="fact-email">…</dd>
+            <dt>Account created</dt><dd id="fact-created">…</dd>
+            <dt>Saved chats</dt><dd id="fact-chats">…</dd>
+          </dl>
+          <p>Your password is never stored in a readable form. The text of your chats is stored so you can read it again in your history. When the AI conversation is switched on, the latest messages are sent to the AI provider (Anthropic) to write each reply, as the chat's welcome message explains.</p>
+          <p id="retention-note" hidden></p>
+          <p><a href="/history.html" class="text-link">See your chat history</a></p>
+          <p id="load-status" class="status" role="status"></p>
+        </section>
+
+        <section class="panel" aria-labelledby="download-title">
+          <h2 id="download-title">Download your data</h2>
+          <p>Get everything above in one file that you can keep: your details and the full text of every saved chat.</p>
+          <button type="button" id="download" class="pill">Download my data</button>
+          <p id="download-status" class="status" role="status"></p>
+        </section>
+
+        <section class="panel panel-danger" aria-labelledby="delete-title">
+          <h2 id="delete-title">Delete your account</h2>
+          <p>This permanently deletes your account and every saved chat. It cannot be undone, and you will be signed out everywhere. If you want a copy first, download your data above.</p>
+          <div class="field">
+            <label for="confirm-password">Your password, to confirm</label>
+            <input type="password" id="confirm-password" autocomplete="current-password">
+          </div>
+          <button type="button" id="delete-account" class="pill">Delete my account</button>
+          <p id="delete-status" class="status" role="status"></p>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer account-footer">
+      <div class="container">
+        <div class="footer-copyright">
+          <span>&copy; 2026 Sutkeri, your postpartum care companion.</span>
+          <span>Sutkeri is not a substitute for professional medical advice.</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/pages/account.js" type="module"></script>
+  </body>
+</html>

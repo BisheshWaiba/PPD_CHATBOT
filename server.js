@@ -8,6 +8,7 @@ import { initUserStore } from './util/userStore.js';
 import { pythonAvailable, pythonCommand } from './util/python.js';
 import { tempDir } from './util/paths.js';
 import { startChatCleanup } from './util/tempCleanup.js';
+import { startHistoryCleanup } from './util/historyStore.js';
 
 // Fail now, not on the first sign-in, if the JWT secret is missing in production
 assertJwtConfig();
@@ -37,6 +38,9 @@ if (!pythonAvailable()) {
 
 // Chat conversations leave small files in temp/. Remove the old ones now and every hour.
 startChatCleanup(tempDir());
+
+// Saved chats are kept until their owner deletes them, unless CHAT_HISTORY_DAYS asks for expiry
+startHistoryCleanup();
 
 const app = createApp();
 

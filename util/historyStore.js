@@ -16,6 +16,7 @@ import { dataDir } from './paths.js';
 //   get(userId, id)                 -> summary + messages, or null
 //   remove(userId, id)              -> true if it existed
 //   removeAll(userId)               -> how many were deleted
+//   removeOlderThan(date)           -> how many chats (of anyone) had no activity since date, now deleted
 // A summary is { id, startedAt, updatedAt, messageCount, preview }.
 
 export const MAX_MESSAGES = 500; // per chat
@@ -111,6 +112,10 @@ const mongoHistory = {
 
   async removeAll(userId) {
     return (await Conversation.deleteMany({ userId })).deletedCount;
+  },
+
+  async removeOlderThan(date) {
+    return (await Conversation.deleteMany({ updatedAt: { $lt: date } })).deletedCount;
   }
 };
 
@@ -192,6 +197,15 @@ function createFileHistory() {
       data.chats = data.chats.filter(chat => chat.userId !== userId);
       if (data.chats.length !== before) save();
       return before - data.chats.length;
+    },
+
+    async removeOlderThan(date) {
+      const cutoff = date.toISOString();
+      const data = load();
+      const before = data.chats.length;
+      data.chats = data.chats.filter(chat => chat.updatedAt >= cutoff);
+      if (data.chats.length !== before) save();
+      return before - data.chats.length;
     }
   };
 }
@@ -206,4 +220,33 @@ export function getHistoryStore() {
     cached = { forStore: users, history: users.kind === 'mongo' ? mongoHistory : createFileHistory() };
   }
   return cached.history;
+}
+
+// --- Automatic expiry -------------------------------------------------------------------------
+// Saved chats stay until their owner deletes them, unless CHAT_HISTORY_DAYS is set: then a chat is
+// deleted once that many days have passed since its last message.
+
+export const retentionDays = () => Math.max(0, Math.floor(Number(process.env.CHAT_HISTORY_DAYS) || 0));
+
+// Deletes expired chats now. Returns how many went (0 when expiry is off).
+export async function sweepHistory(now = Date.now()) {
+  const days = retentionDays();
+  const store = days ? getHistoryStore() : null;
+  if (!store) return 0;
+  return store.removeOlderThan(new Date(now - days * 24 * 60 * 60 * 1000));
+}
+
+// Sweeps now and then every hour for as long as the server runs. Does nothing when expiry is off.
+export function startHistoryCleanup() {
+  if (!retentionDays()) return;
+  const run = async () => {
+    try {
+      const removed = await sweepHistory();
+      if (removed) console.log(`Deleted ${removed} saved chat${removed === 1 ? '' : 's'} older than ${retentionDays()} days`);
+    } catch (error) {
+      console.error(`Saved-chat clean-up failed: ${error.message}`);
+    }
+  };
+  run();
+  setInterval(run, 60 * 60 * 1000).unref();
 }

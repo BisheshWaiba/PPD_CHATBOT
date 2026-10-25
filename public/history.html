@@ -225,6 +225,12 @@
         text-align: right;
       }
 
+      .text-link {
+        font-weight: 600;
+        color: var(--berry-dark);
+        text-decoration: underline;
+      }
+
       .history-footer {
         padding: 28px 0;
       }
@@ -295,6 +301,8 @@
           <div class="history-intro">
             <h1 id="list-title">Chat history</h1>
             <p>Your chats are saved to your account so you can look back at them whenever you like. Only you can see them, and you can delete any chat, or all of them, at any time.</p>
+            <p id="retention-note" class="chat-meta" hidden></p>
+            <p class="chat-meta">Want a copy of everything, or to delete your whole account? Go to <a href="/account.html" class="text-link">Account &amp; privacy</a>.</p>
           </div>
 
           <p id="status" class="status" role="status"></p>
