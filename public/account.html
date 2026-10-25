@@ -104,6 +104,11 @@
         color: var(--ink-soft);
       }
 
+      /* The offer to confirm the email sits between the facts and the paragraph after them */
+      #verify-box {
+        margin-bottom: 14px;
+      }
+
       .field {
         display: flex;
         flex-direction: column;
@@ -237,9 +242,15 @@
           <dl class="facts">
             <dt>Name</dt><dd id="fact-name">…</dd>
             <dt>Email</dt><dd id="fact-email">…</dd>
+            <dt>Email confirmed</dt><dd id="fact-verified">…</dd>
             <dt>Account created</dt><dd id="fact-created">…</dd>
             <dt>Saved chats</dt><dd id="fact-chats">…</dd>
           </dl>
+          <div id="verify-box" hidden>
+            <p>Confirming your email lets you choose a new password by email if you ever forget yours. Without it, nobody can reset your password.</p>
+            <button type="button" id="resend-verification" class="pill">Send me a confirmation email</button>
+            <p id="verify-status" class="status" role="status"></p>
+          </div>
           <p>Your password is never stored in a readable form. The text of your chats is stored so you can read it again in your history. When the AI conversation is switched on, the latest messages are sent to the AI provider (Anthropic) to write each reply, as the chat's welcome message explains.</p>
           <p id="retention-note" hidden></p>
           <p><a href="/history.html" class="text-link">See your chat history</a></p>

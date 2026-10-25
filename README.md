@@ -60,6 +60,48 @@ Open http://localhost:8004. If MongoDB is not reachable in development, accounts
   `/login.html?next=<page>` if it is not valid.
 - **Rate limits:** 8 failed sign-ins per account and 40 per IP in 15 minutes; 10 registrations
   per IP per hour. Set `TRUST_PROXY=true` behind a reverse proxy so the real IP is used.
+- **Forgotten passwords and email confirmation:** see below.
+
+### Forgotten passwords and email confirmation
+
+New accounts are sent a link to confirm their email address (Account page → "Send me a
+confirmation email" sends it again). **Only a confirmed address can get a password-reset link**:
+if a typo at sign-up (`mina@exmaple.com`) could receive one, a stranger who owns that address
+could take the account over. Accounts made before this existed start as "not confirmed", so
+those people confirm their address once from the Account page.
+
+How it is kept safe:
+
+- A link holds 32 random bytes and works once. A reset link lasts 1 hour, a confirmation link
+  2 days. Only a SHA-256 hash of a link is stored, so a copy of the database holds no usable link.
+  Asking again replaces the earlier link.
+- `POST /auth/forgot-password` answers the same way for an unknown address, an unconfirmed one
+  and a confirmed one, and counts every request (3 per address and 10 per visitor per hour), so it
+  cannot be used to find out who has an account or to fill someone's inbox.
+- Links are built from `APP_URL` and **never** from the request's `Host` header, so a forged header
+  cannot point a link at someone else's site.
+- A new password that is too weak is refused **without** using up the link. A good one ends every
+  sign-in made before (every device), and the person gets a "your password was changed" email.
+- The pages remove the secret from the address bar as soon as they load, and ask browsers not to
+  send it on to other sites (`Referrer-Policy`).
+- Sending runs in the background. A broken mail server never fails or slows a request, and the log
+  line it leaves holds neither the address nor the link.
+
+Email goes out through any provider that offers SMTP (Gmail, Brevo, Resend, SendGrid, Mailtrap,
+your own server). Set these in `.env`:
+
+```
+APP_URL=https://sutkeri.example.com     # the public address of the site
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587                           # 465 with SMTP_SECURE=true
+SMTP_USER=...
+SMTP_PASS=...
+MAIL_FROM=Sutkeri <no-reply@sutkeri.example.com>
+```
+
+On your own computer you need none of this: without `SMTP_HOST`, each email is printed in the
+server console, with its link, so the whole flow can be tried. **In production without these
+settings the features switch themselves off** (the pages say so) instead of failing quietly.
 
 ### API
 
@@ -74,7 +116,13 @@ status code, so `response.ok` is enough to tell them apart. A success carries `"
 | POST | `/api/v1/auth/register` | Public | `{ name, email, password }`. 201, 400 invalid, 409 email taken |
 | POST | `/api/v1/auth/login` | Public | `{ email, password }`. 200 with `token` and `user`, 401 for a wrong email or password |
 | POST | `/api/v1/auth/logout` | Bearer token | Ends this token at once. 200, or 401 if it is already invalid or signed out |
-| GET | `/api/v1/auth/me` | Bearer token | The signed-in user. 401 if the token is missing, expired, invalid or signed out |
+| GET | `/api/v1/auth/me` | Bearer token | The signed-in user. 401 if the token is missing, expired, invalid, signed out, or from before a password change |
+| GET | `/api/v1/auth/features` | Public | `{ data: { email } }`: whether this server can send email (so pages can hide what depends on it) |
+| POST | `/api/v1/auth/forgot-password` | Public | `{ email }`. The same 200 whether or not the address has a (confirmed) account. 400 for a malformed address, 429 past the limits, 503 when the server has no email |
+| POST | `/api/v1/auth/check-reset-link` | Public | `{ token }`. 200 if the link can still be used, 400 if not. Does not use it up. The reset page calls it on load, so a used or expired link is explained before anyone types a password |
+| POST | `/api/v1/auth/reset-password` | Public | `{ token, password }` from the emailed link. 200, or 400 with one message for every way a link can be bad (expired, used, made up) and for a weak password (the link is kept) |
+| POST | `/api/v1/auth/verify-email` | Public | `{ token }` from the emailed link. 200 or 400. Opening the page does not confirm anything; the page asks for a click |
+| POST | `/api/v1/auth/resend-verification` | Bearer token | Sends the confirmation email again. 3 per hour, 503 when the server has no email |
 | GET | `/api/v1/chatbot/greeting` | Bearer token | Starts a chat. Returns `sessionId` and the greeting |
 | POST | `/api/v1/chatbot/message` | Bearer token | `{ message }` with the `x-session-id` header. Returns `sessionId` and `response`. 400 if the message is missing, blank or over 1000 characters. 429 past 30 requests a minute per account |
 
@@ -236,15 +284,16 @@ and small chatbot session files in `temp/`. Everything is deleted when the accou
 can also expire (`CHAT_HISTORY_DAYS`).
 
 What is **not** done yet: the files in `data/` are plain text on disk, so protect the machine (and
-backups) they live on, or use MongoDB with encryption at rest. There is no email-based account
-recovery. If you publish this, write a privacy notice that mentions the saved chats and, when the AI
-conversation is on, the AI provider.
+backups) they live on, or use MongoDB with encryption at rest. If you publish this, write a privacy
+notice that mentions the saved chats, the emails the site sends (confirmation and password reset,
+through your mail provider) and, when the AI conversation is on, the AI provider.
 
 ## Production checklist
 
 - `NODE_ENV=production`, a real `JWT_SECRET`, and a reachable `MONGO_URI`
 - Serve over HTTPS (the server sends HSTS in production)
 - Set `TRUST_PROXY=true` if there is a reverse proxy in front
+- Set `APP_URL` and the `SMTP_*` / `MAIL_FROM` settings, or password reset and email confirmation stay switched off
 
 ## License
 

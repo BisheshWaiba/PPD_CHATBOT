@@ -15,12 +15,13 @@ const files = walk(publicDir).map(file => path.relative(publicDir, file).split(p
 const text = file => fs.readFileSync(path.join(publicDir, file), 'utf8');
 const textFiles = files.filter(file => /\.(html|css|js)$/.test(file));
 
-// Pages the server hands out itself, so nothing needs to link to them
-const SERVED_BY_THE_APP = new Set(['404.html', 'home.html']);
+// Pages that no other page links to: the server hands them out itself, or they are opened from
+// the link in an email
+const REACHED_WITHOUT_A_LINK = new Set(['404.html', 'home.html', 'reset-password.html', 'verify-email.html']);
 
 test('every file in public/ is used by a page, a stylesheet or a script', () => {
   const unused = files.filter(file => {
-    if (SERVED_BY_THE_APP.has(file)) return false;
+    if (REACHED_WITHOUT_A_LINK.has(file)) return false;
     const name = path.posix.basename(file);
     return !textFiles.some(other => other !== file && text(other).includes(name));
   });

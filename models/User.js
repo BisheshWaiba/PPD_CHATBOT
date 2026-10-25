@@ -35,6 +35,17 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  // Set once the person has opened the link we emailed to this address
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  // A sign-in token carries the number it was issued under. Changing the password adds one, which
+  // ends every sign-in that was issued before.
+  tokenVersion: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -50,7 +61,7 @@ userSchema.pre('save', async function () {
 
 // Sign JWT and return
 userSchema.methods.getSignedJwtToken = function () {
-  return signToken({ id: this._id });
+  return signToken({ id: this._id, tokenVersion: this.tokenVersion });
 };
 
 // Match user entered password to hashed password in database

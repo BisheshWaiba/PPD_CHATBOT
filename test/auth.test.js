@@ -75,7 +75,8 @@ test('registers a user and returns a token without any password data', async () 
   assert.equal(status, 201);
   assert.equal(body.success, true);
   assert.ok(body.token);
-  assert.deepEqual(Object.keys(body.user).sort(), ['createdAt', 'email', 'id', 'name', 'role']);
+  assert.deepEqual(Object.keys(body.user).sort(), ['createdAt', 'email', 'emailVerified', 'id', 'name', 'role']);
+  assert.equal(body.user.emailVerified, false);
   assert.equal(body.user.email, 'alice@example.com');
   assert.equal(body.user.role, 'user');
   assert.ok(!JSON.stringify(body).includes(alice.password));

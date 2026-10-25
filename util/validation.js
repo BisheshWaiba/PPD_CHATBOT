@@ -61,6 +61,15 @@ export function validateChatMessage(message) {
   return null;
 }
 
+// The rules for a password, at sign-up and when choosing a new one. email is optional.
+export function validatePassword(password, email) {
+  if (typeof password !== 'string' || !password) return 'Please provide a password';
+  if (password.length < PASSWORD_MIN) return `Password must be at least ${PASSWORD_MIN} characters long`;
+  if (Buffer.byteLength(password, 'utf8') > PASSWORD_MAX_BYTES) return `Password is too long (maximum ${PASSWORD_MAX_BYTES} bytes)`;
+  if (typeof email === 'string' && password.trim().toLowerCase() === email.trim().toLowerCase()) return 'Password cannot be the same as your email';
+  return null;
+}
+
 export function validateRegistration({ name, email, password } = {}) {
   if (typeof name !== 'string' || !name.trim()) return 'Please provide your name';
   if (name.trim().length > NAME_MAX) return `Name cannot be more than ${NAME_MAX} characters`;
@@ -68,9 +77,5 @@ export function validateRegistration({ name, email, password } = {}) {
   const emailError = validateEmail(email);
   if (emailError) return emailError;
 
-  if (typeof password !== 'string' || !password) return 'Please provide a password';
-  if (password.length < PASSWORD_MIN) return `Password must be at least ${PASSWORD_MIN} characters long`;
-  if (Buffer.byteLength(password, 'utf8') > PASSWORD_MAX_BYTES) return `Password is too long (maximum ${PASSWORD_MAX_BYTES} bytes)`;
-  if (password.trim().toLowerCase() === email.trim().toLowerCase()) return 'Password cannot be the same as your email';
-  return null;
+  return validatePassword(password, email);
 }

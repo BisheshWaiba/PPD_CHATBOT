@@ -33,6 +33,11 @@ export const protect = async (req, res, next) => {
 
     const user = await store.findById(decoded.id);
     if (!user) return fail(res, 401, 'User no longer exists');
+    // Changing the password ends every sign-in that was issued before. Tokens from before this
+    // existed carry no version, which counts as 0.
+    if ((decoded.tv ?? 0) !== user.tokenVersion) {
+      return fail(res, 401, 'Your password was changed. Please sign in again.');
+    }
     req.user = user;
     req.token = decoded;
     return next();

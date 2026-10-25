@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import RevokedToken from '../models/RevokedToken.js';
+import AuthToken from '../models/AuthToken.js';
 import { hashPassword, comparePassword } from './passwords.js';
 import { dataDir, isProduction } from './paths.js';
 
@@ -14,6 +15,16 @@ import { dataDir, isProduction } from './paths.js';
 //   revokeToken(jti, exp)              -> remembers a signed-out token until exp (seconds)
 //   isTokenRevoked(jti)                -> true while that token must be refused
 //   deleteUser(id)                     -> true if the account existed and is now gone
+//   findByEmail(email)                 -> user or null
+//   markEmailVerified(id)              -> true if the account exists
+//   setPassword(id, newPassword)       -> true if the account exists. Ends every sign-in made
+//                                         before, and clears the account's reset links.
+//   createAuthToken(userId, purpose, hash, expiresAtMs)
+//                                      -> keeps a single-use link token (only its hash, never the
+//                                         token itself), replacing any earlier one of that purpose
+//   peekAuthToken(purpose, hash)       -> the user id if the token is good, without using it up
+//   consumeAuthToken(purpose, hash)    -> the user id the first time, then never again; null when
+//                                         the token is unknown, used up or expired
 //
 // - mongo: the real database (always used when MongoDB is connected).
 // - file:  data/users.json with bcrypt hashes. Development fallback for when MongoDB
@@ -34,13 +45,20 @@ async function spendComparison(password) {
   await comparePassword(password, dummyHash);
 }
 
-const toPublic = user => ({
-  id: String(user.id ?? user._id),
-  name: user.name,
-  email: user.email,
-  role: user.role || 'user',
-  createdAt: user.createdAt
-});
+const toPublic = user => {
+  const publicUser = {
+    id: String(user.id ?? user._id),
+    name: user.name,
+    email: user.email,
+    role: user.role || 'user',
+    createdAt: user.createdAt,
+    emailVerified: Boolean(user.emailVerified)
+  };
+  // Which sign-ins are still valid. It is deliberately not enumerable, so it never appears in a
+  // response: only the token code reads it (user.tokenVersion).
+  Object.defineProperty(publicUser, 'tokenVersion', { value: user.tokenVersion || 0, enumerable: false });
+  return publicUser;
+};
 
 const mongoStore = {
   kind: 'mongo',
@@ -73,7 +91,44 @@ const mongoStore = {
 
   async deleteUser(id) {
     if (!mongoose.isValidObjectId(id)) return false;
+    await AuthToken.deleteMany({ userId: String(id) });
     return (await User.deleteOne({ _id: id })).deletedCount > 0;
+  },
+
+  async findByEmail(email) {
+    const user = await User.findOne({ email });
+    return user ? toPublic(user) : null;
+  },
+
+  async markEmailVerified(id) {
+    if (!mongoose.isValidObjectId(id)) return false;
+    return (await User.updateOne({ _id: id }, { $set: { emailVerified: true } })).matchedCount > 0;
+  },
+
+  async setPassword(id, newPassword) {
+    if (!mongoose.isValidObjectId(id)) return false;
+    const user = await User.findById(id).select('+password');
+    if (!user) return false;
+    user.password = newPassword; // the model hashes it before saving
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+    await AuthToken.deleteMany({ userId: String(id), purpose: 'reset' });
+    return true;
+  },
+
+  async createAuthToken(userId, purpose, hash, expiresAtMs) {
+    await AuthToken.deleteMany({ userId: String(userId), purpose });
+    await AuthToken.create({ userId: String(userId), purpose, hash, expiresAt: new Date(expiresAtMs) });
+  },
+
+  async peekAuthToken(purpose, hash) {
+    const found = await AuthToken.findOne({ purpose, hash, expiresAt: { $gt: new Date() } });
+    return found ? found.userId : null;
+  },
+
+  async consumeAuthToken(purpose, hash) {
+    const found = await AuthToken.findOneAndDelete({ purpose, hash, expiresAt: { $gt: new Date() } });
+    return found ? found.userId : null;
   },
 
   async revokeToken(jti, exp) {
@@ -125,6 +180,8 @@ function createFileStore() {
         email,
         passwordHash,
         role: 'user',
+        emailVerified: false,
+        tokenVersion: 0,
         createdAt: new Date().toISOString()
       };
       users.push(user);
@@ -151,8 +208,61 @@ function createFileStore() {
       const before = data.users.length;
       data.users = data.users.filter(user => user.id !== id);
       if (data.users.length === before) return false;
+      data.authTokens = (data.authTokens || []).filter(token => token.userId !== id);
       save();
       return true;
+    },
+
+    async findByEmail(email) {
+      const user = load().users.find(u => u.email === email);
+      return user ? toPublic(user) : null;
+    },
+
+    async markEmailVerified(id) {
+      const user = load().users.find(u => u.id === id);
+      if (!user) return false;
+      user.emailVerified = true;
+      save();
+      return true;
+    },
+
+    async setPassword(id, newPassword) {
+      // Hashing takes a moment, so it happens before anything is changed. The rest is synchronous.
+      const passwordHash = await hashPassword(newPassword);
+      const data = load();
+      const user = data.users.find(u => u.id === id);
+      if (!user) return false;
+      user.passwordHash = passwordHash;
+      user.tokenVersion = (user.tokenVersion || 0) + 1;
+      data.authTokens = (data.authTokens || []).filter(token => !(token.userId === id && token.purpose === 'reset'));
+      save();
+      return true;
+    },
+
+    // Link tokens live in the same file as { purpose, hash, userId, expiresAt in ms }. Expired ones
+    // are dropped whenever a new one is made.
+    async createAuthToken(userId, purpose, hash, expiresAtMs) {
+      const data = load();
+      const now = Date.now();
+      data.authTokens = (data.authTokens || []).filter(token => token.expiresAt > now && !(token.userId === userId && token.purpose === purpose));
+      data.authTokens.push({ purpose, hash, userId, expiresAt: expiresAtMs });
+      save();
+    },
+
+    async peekAuthToken(purpose, hash) {
+      const token = (load().authTokens || []).find(t => t.purpose === purpose && t.hash === hash);
+      return token && token.expiresAt > Date.now() ? token.userId : null;
+    },
+
+    async consumeAuthToken(purpose, hash) {
+      const data = load();
+      const tokens = data.authTokens || [];
+      const index = tokens.findIndex(token => token.purpose === purpose && token.hash === hash);
+      if (index === -1) return null;
+      const [token] = tokens.splice(index, 1);
+      data.authTokens = tokens;
+      save();
+      return token.expiresAt > Date.now() ? token.userId : null;
     },
 
     // Signed-out tokens live in the same file as { jti: expiry in ms }. Entries that have

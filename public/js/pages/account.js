@@ -12,14 +12,22 @@ const request = (path, options) => window.MOMAuth.apiFetch(path, options);
 async function showDetails() {
   const status = $('load-status');
   try {
-    const [me, chats] = await Promise.all([request('/api/v1/auth/me'), request('/api/v1/conversations')]);
+    const [me, chats, features] = await Promise.all([
+      request('/api/v1/auth/me'),
+      request('/api/v1/conversations'),
+      request('/api/v1/auth/features').catch(() => null)
+    ]);
     if (me.status === 401 || chats.status === 401) return; // the shared script is sending the person to sign in
     if (!me.ok || !chats.ok) throw new Error('could not load');
 
     const user = (await me.json()).data;
     const list = await chats.json();
+    const emailWorks = Boolean(features && features.ok && (await features.json()).data.email);
     $('fact-name').textContent = user.name;
     $('fact-email').textContent = user.email;
+    $('fact-verified').textContent = user.emailVerified ? 'Yes' : 'Not yet';
+    // The offer to confirm only appears when it can work: not confirmed yet, and this server can send email
+    $('verify-box').hidden = user.emailVerified || !emailWorks;
     $('fact-created').textContent = formatWhen(user.createdAt) || 'Unknown';
     $('fact-chats').textContent = String(list.data.length);
 
@@ -31,6 +39,25 @@ async function showDetails() {
     status.textContent = "We couldn't load your details just now. Please refresh the page.";
   }
 }
+
+// ---------- Confirm the email address ----------
+
+$('resend-verification').addEventListener('click', async () => {
+  const status = $('verify-status');
+  const button = $('resend-verification');
+  button.disabled = true;
+  status.textContent = 'Sending…';
+  try {
+    const response = await request('/api/v1/auth/resend-verification', { method: 'POST' });
+    if (response.status === 401) return; // the session ended: the shared script handles it
+    const data = await response.json();
+    status.textContent = response.ok ? `${data.message} Check your spam folder if it does not arrive.` : data.message;
+  } catch (error) {
+    status.textContent = "We couldn't send the email just now. Please try again.";
+  } finally {
+    button.disabled = false;
+  }
+});
 
 // ---------- Download ----------
 

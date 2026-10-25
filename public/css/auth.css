@@ -163,6 +163,10 @@
   gap: 22px;
 }
 
+.auth-form[hidden] {
+  display: none;
+}
+
 .auth-form h1 {
   font-size: clamp(34px, 3.6vw, 46px);
   line-height: 1.05;
@@ -237,6 +241,18 @@
 }
 
 .check-row label a:hover {
+  text-decoration: underline;
+}
+
+/* "Forgot password?" sits at the far end of the Remember me row */
+.check-row .check-link {
+  margin-left: auto;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--berry);
+}
+
+.check-row .check-link:hover {
   text-decoration: underline;
 }
 
