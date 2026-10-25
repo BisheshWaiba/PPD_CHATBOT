@@ -55,6 +55,23 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 - **Production (`NODE_ENV=production`):** nobody can sign in or register until MongoDB is
   reachable, and the server says so on start-up.
 
+## For production
+
+Running for real people needs more care than development. The short version (the full guide is
+in `docs/DEPLOYMENT.md`):
+
+- Use a tier that has **real backups**, and restore one once to see that it works. Check the
+  Backup page of the tier before you choose it.
+- Make a **separate database user** for the app with the `readWrite` role on this one database,
+  not an administrator.
+- In Network Access, allow only the address your host connects from, if it has a fixed one. If
+  it has not, `0.0.0.0/0` makes the password the only protection: make it long and random.
+- Choose a region and write it in the privacy policy.
+- `npm run check:production` connects with your `MONGO_URI` and tells you whether it works.
+
+When the app starts it builds the indexes it needs (one account per email, expiring sign-out and
+link entries). If it cannot, it says why and refuses to use that database.
+
 ## Testing the Connection
 
 Run the test connection script:

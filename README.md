@@ -327,10 +327,22 @@ through your mail provider) and, when the AI conversation is on, the AI provider
 
 ## Production checklist
 
-- `NODE_ENV=production`, a real `JWT_SECRET`, and a reachable `MONGO_URI`
-- Serve over HTTPS (the server sends HSTS in production)
-- Set `TRUST_PROXY=true` if there is a reverse proxy in front
-- Set `APP_URL` and the `SMTP_*` / `MAIL_FROM` settings, or password reset and email confirmation stay switched off
+Putting Sutkeri online for real people is a bigger step than running it on your computer. Read
+**[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: the database, email, HTTPS, the AI spend limit, the
+privacy policy, and why to run exactly one copy. Then run `npm run check:production`. It looks at
+your settings, connects to the database and the mail server (nothing is written or sent), and
+lists what must be fixed, what is risky and what is fine, without printing a secret. In short:
+
+- `NODE_ENV=production`, a real `JWT_SECRET`, and a hosted `MONGO_URI` with backups
+- `APP_URL` set to the public **https** address. In production a visitor who arrives over plain
+  HTTP (the proxy says so in `X-Forwarded-Proto`) is sent there, and every page carries HSTS
+- `TRUST_PROXY=true` behind a proxy or hosting platform, or every visitor looks like one address
+- The `SMTP_*` and `MAIL_FROM` settings, or password reset and email confirmation stay switched off
+- `ASSISTANT_DAILY_BUDGET_USD`, **and** a spend limit in the Anthropic console
+- `public/privacy.html` and `public/terms.html` finished: every highlighted `[[...]]` filled in,
+  and read by someone qualified. The launch check fails until it is
+- Exactly **one** running copy: the rate limits and the AI budget live in the memory of one process
+- A host health check on `GET /healthz` (200 when the app and its database are up, else 503)
 
 ## License
 

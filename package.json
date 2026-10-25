@@ -12,7 +12,8 @@
     "dev": "nodemon server.js",
     "test": "node --test \"test/**/*.test.js\"",
     "check:assistant": "node scripts/check-assistant.js",
-    "review:pack": "node scripts/review-pack.js"
+    "review:pack": "node scripts/review-pack.js",
+    "check:production": "node scripts/check-production.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

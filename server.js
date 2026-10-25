@@ -1,11 +1,14 @@
 // Load environment variables
 import 'dotenv/config';
 
+import mongoose from 'mongoose';
 import connectDB from './config/db.js';
 import { createApp } from './app.js';
 import { assertJwtConfig } from './util/jwt.js';
 import { initUserStore } from './util/userStore.js';
 import { startHistoryCleanup } from './util/historyStore.js';
+import { createShutdown } from './util/shutdown.js';
+import { tuneServer } from './util/serverTuning.js';
 
 // Fail now, not on the first sign-in, if the JWT secret is missing in production
 assertJwtConfig();
@@ -32,7 +35,7 @@ const app = createApp();
 
 // Start server
 const PORT = process.env.PORT || 8004;
-app.listen(PORT, () => {
+const server = tuneServer(app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Access the home page at: http://localhost:${PORT}`);
   console.log('Environment:', {
@@ -41,4 +44,10 @@ app.listen(PORT, () => {
     MONGO_URI: process.env.MONGO_URI ? '********' : undefined,
     USER_STORE: store ? store.kind : 'none'
   });
-});
+}));
+
+// A host stops the app with SIGTERM when it deploys a new version or restarts. Finish what is in
+// progress first. (Ctrl+C in a terminal sends SIGINT.)
+const shutdown = createShutdown({ server, closeDatabase: () => mongoose.disconnect() });
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

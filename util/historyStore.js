@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
+import { writeFileAtomic } from './atomicWrite.js';
 import Conversation from '../models/Conversation.js';
 import { getUserStore } from './userStore.js';
 import { dataDir } from './paths.js';
@@ -134,12 +135,9 @@ function createFileHistory() {
     return db;
   }
 
+  // Chats are private: the file is readable by its owner only (see writeFileAtomic)
   function save() {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    const tmp = `${file}.tmp`;
-    // Chats are private: readable by the owner of the file only
-    fs.writeFileSync(tmp, JSON.stringify(db, null, 2), { mode: 0o600 });
-    fs.renameSync(tmp, file);
+    writeFileAtomic(file, JSON.stringify(db, null, 2));
   }
 
   const owned = (userId, id) => load().chats.find(chat => chat.userId === userId && chat.id === id);

@@ -219,6 +219,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function initializeChat() {
+        // Nobody is signed in: the shared script is already sending the visitor to sign in, so do
+        // not start a chat, or ask the server anything, only to get a 401 as the page goes away
+        if (!window.MOMAuth.isAuthenticated()) return;
         await loadAssistantStatus();
         const chatbox = document.getElementById('chatbox');
         const userMessage = document.getElementById('user-message');

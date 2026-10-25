@@ -30,17 +30,19 @@ const { createApp } = await import('../app.js');
 const { initUserStore, getUserStore } = await import('../util/userStore.js');
 const { signToken } = await import('../util/jwt.js');
 const assistant = await import('../util/assistant.js');
+const budget = await import('../util/assistantBudget.js');
 const { validateAssistantEntries, ASSISTANT_LAST_MAX, ASSISTANT_ENTRIES_MAX } = await import('../util/validation.js');
 const { HELPLINES } = await import('../public/js/chat-logic.js');
 
 // --- A fake of the Messages API ---------------------------------------------------------------
 
-const fake = { requests: [], mode: 'ok', status: 500, reply: 'That sounds really exhausting. How have you been sleeping?' };
+const USUAL_USAGE = { input_tokens: 100, output_tokens: 30 };
+const fake = { requests: [], mode: 'ok', status: 500, reply: 'That sounds really exhausting. How have you been sleeping?', usage: USUAL_USAGE };
 let fakeServer;
 
 const messageJson = (model, content, stop = 'end_turn') => JSON.stringify({
   id: 'msg_test', type: 'message', role: 'assistant', model, content,
-  stop_reason: stop, stop_sequence: null, usage: { input_tokens: 100, output_tokens: 30 }
+  stop_reason: stop, stop_sequence: null, usage: fake.usage
 });
 
 function startFake() {
@@ -93,8 +95,11 @@ beforeEach(() => {
   fake.requests.length = 0;
   fake.mode = 'ok';
   fake.reply = 'That sounds really exhausting. How have you been sleeping?';
+  fake.usage = USUAL_USAGE;
   process.env.ANTHROPIC_API_KEY = API_KEY;
   delete process.env.ASSISTANT_MODEL;
+  delete process.env.ASSISTANT_DAILY_BUDGET_USD;
+  budget.resetBudget();
 });
 
 // --- Helpers ----------------------------------------------------------------------------------
@@ -413,4 +418,129 @@ test('there is also a daily allowance', async (t) => {
   for (let i = 0; i < 3; i++) assert.equal((await ask(account, said(`later ${i}`))).status, 200);
   now += 61_000;
   assert.equal((await ask(account, said('one more'))).status, 429, 'the daily allowance of 7 is used up');
+});
+
+// --- The daily budget -------------------------------------------------------------------------
+
+// One reply of 1,000 tokens in and 100 out costs $0.006 on the default model
+const SIX_TENTHS_OF_A_CENT = { input_tokens: 1000, output_tokens: 100 };
+
+test('with no budget set there is no ceiling, and what is spent is still counted', async () => {
+  assert.equal(budget.dailyBudget(), 0);
+  fake.usage = SIX_TENTHS_OF_A_CENT;
+  for (let i = 0; i < 3; i++) assert.equal((await ask(await newAccount(), said('I am tired'))).status, 200);
+  assert.ok(Math.abs(budget.spentToday() - 0.018) < 1e-9, String(budget.spentToday()));
+  budget.recordSpend(1000);
+  assert.equal(budget.budgetReached(), false);
+  assert.equal((await (await api('/api/v1/assistant', { token: (await newAccount()).token })).json()).data.enabled, true);
+});
+
+test('a bad or empty setting means no ceiling, not a ceiling of zero', () => {
+  for (const value of ['', '0', '-5', 'five', 'NaN', ' ']) {
+    process.env.ASSISTANT_DAILY_BUDGET_USD = value;
+    assert.equal(budget.dailyBudget(), 0, JSON.stringify(value));
+  }
+  process.env.ASSISTANT_DAILY_BUDGET_USD = '2.5';
+  assert.equal(budget.dailyBudget(), 2.5);
+});
+
+test('a call is counted at its model\'s price, and a model we do not know at the dearest price', () => {
+  assert.equal(budget.costOfCall('claude-opus-5-5', { input_tokens: 1e6, output_tokens: 1e6 }), 24);
+  assert.equal(budget.costOfCall('claude-haiku-5-5', { input_tokens: 1e6, output_tokens: 0 }), 0.1);
+  assert.equal(budget.costOfCall('a-model-from-the-future', { input_tokens: 1e6, output_tokens: 1e6 }), 30, 'the dearest input and output prices we know');
+  assert.equal(budget.costOfCall('claude-opus-5-5', undefined), 0);
+});
+
+test('once the budget is spent the AI is switched off for everyone, the chat is told, and a crisis is still answered', async () => {
+  process.env.ASSISTANT_DAILY_BUDGET_USD = '0.01';
+  fake.usage = SIX_TENTHS_OF_A_CENT;
+
+  const logs = await captureLogs(async () => {
+    assert.equal((await ask(await newAccount(), said('I am tired'))).status, 200);
+    assert.equal(budget.budgetReached(), false, 'about $0.006 of $0.01 so far');
+    assert.equal((await api('/api/v1/assistant', { token: (await newAccount()).token }).then(json)).body.data.enabled, true);
+
+    assert.equal((await ask(await newAccount(), said('I cannot sleep'))).status, 200);
+    assert.equal(budget.budgetReached(), true, 'about $0.012 now');
+
+    // The next person, with a fresh allowance of their own, is turned away before anything is spent
+    const requestsBefore = fake.requests.length;
+    const refused = await ask(await newAccount(), said('I am sad'));
+    assert.equal(refused.status, 503);
+    assert.equal(fake.requests.length, requestsBefore, 'nothing was sent to Anthropic');
+    assert.equal((await refused.json()).message, 'The assistant is not available right now.');
+
+    // The chat page asks first, so it can leave the AI out of its welcome
+    assert.equal((await api('/api/v1/assistant', { token: (await newAccount()).token }).then(json)).body.data.enabled, false);
+
+    // Safety never depends on the budget
+    const crisis = await ask(await newAccount(), said('I want to end it all'));
+    assert.equal(crisis.status, 200);
+    assert.equal((await crisis.json()).data.source, 'safety');
+  });
+  assert.equal((logs.match(/today's AI budget of \$0\.01 is used up/g) || []).length, 1, 'said once, not on every request');
+});
+
+test('the budget starts again with each new day (UTC)', () => {
+  process.env.ASSISTANT_DAILY_BUDGET_USD = '1';
+  const evening = Date.UTC(2026, 9, 25, 23, 59, 0);
+  const morning = Date.UTC(2026, 9, 26, 0, 1, 0);
+  const quiet = mock.method(console, 'warn', () => {});
+  try {
+    budget.recordSpend(1.5, evening);
+    assert.equal(budget.budgetReached(evening), true);
+    assert.equal(budget.budgetReached(morning), false);
+    assert.equal(budget.spentToday(morning), 0);
+    budget.recordSpend(0.25, morning);
+    assert.equal(budget.spentToday(morning), 0.25);
+  } finally {
+    quiet.mock.restore();
+  }
+});
+
+test('a reply that was thrown away still cost money, and is counted', async () => {
+  fake.usage = SIX_TENTHS_OF_A_CENT;
+  const quiet = mock.method(console, 'error', () => {});
+  try {
+    fake.reply = 'Please call 9841234567 for help right now.'; // not one of our helplines: thrown away
+    assert.equal((await ask(await newAccount(), said('I am tired'))).status, 503);
+    assert.ok(Math.abs(budget.spentToday() - 0.006) < 1e-9, 'the phone-number filter: ' + budget.spentToday());
+
+    fake.mode = 'refusal';
+    assert.equal((await ask(await newAccount(), said('I am sad'))).status, 503);
+    assert.ok(Math.abs(budget.spentToday() - 0.012) < 1e-9, 'a refusal: ' + budget.spentToday());
+
+    fake.mode = 'empty';
+    assert.equal((await ask(await newAccount(), said('I am worried'))).status, 503);
+    assert.ok(Math.abs(budget.spentToday() - 0.018) < 1e-9, 'an empty reply: ' + budget.spentToday());
+  } finally {
+    quiet.mock.restore();
+  }
+});
+
+test('a call that never reached the model costs nothing', async () => {
+  fake.usage = SIX_TENTHS_OF_A_CENT;
+  fake.mode = 'status';
+  fake.status = 500;
+  const quiet = mock.method(console, 'error', () => {});
+  try {
+    assert.equal((await ask(await newAccount(), said('I am tired'))).status, 503);
+  } finally {
+    quiet.mock.restore();
+  }
+  assert.equal(budget.spentToday(), 0);
+});
+
+test('the budget message never carries the amounts to the person', async () => {
+  process.env.ASSISTANT_DAILY_BUDGET_USD = '0.001';
+  fake.usage = SIX_TENTHS_OF_A_CENT;
+  const quiet = mock.method(console, 'warn', () => {});
+  try {
+    await ask(await newAccount(), said('I am tired'));
+    const refused = await ask(await newAccount(), said('I am sad'));
+    const text = JSON.stringify(await refused.json());
+    assert.ok(!/\$|budget|spent|0\.0/i.test(text), text);
+  } finally {
+    quiet.mock.restore();
+  }
 });

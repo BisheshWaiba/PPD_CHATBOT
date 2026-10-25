@@ -29,21 +29,32 @@ const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
 
 export class AssistantUnavailableError extends Error {
   // `reason` is for the server log only. It never contains what the person wrote.
-  constructor(reason) {
+  // `extra.usage` and `extra.model` say what the call used when the model did answer but the
+  // reply was thrown away: that still cost money, and the budget counts it.
+  constructor(reason, extra = {}) {
     super('The assistant is not available');
     this.name = 'AssistantUnavailableError';
     this.reason = reason;
+    this.usage = extra.usage;
+    this.model = extra.model;
   }
 }
 
 // Dollars per million tokens (input, output), from Anthropic's published prices
-const PRICES = {
+export const PRICES = {
   'claude-opus-5-5': [4, 20],
   'claude-opus-5': [5, 25],
   'claude-sonnet-5-5': [2, 10],
   'claude-sonnet-5': [2, 10],
   'claude-haiku-5-5': [0.1, 0.5]
 };
+
+// What a call would cost at the dearest price we know, for a model whose own price we do not
+export function dearestCost(usage = {}) {
+  const input = Math.max(...Object.values(PRICES).map(price => price[0]));
+  const output = Math.max(...Object.values(PRICES).map(price => price[1]));
+  return ((usage.input_tokens || 0) * input + (usage.output_tokens || 0) * output) / 1e6;
+}
 
 // What one reply cost in dollars, or null when the model's price is not known here
 export function estimateCost(model, usage = {}) {
@@ -225,15 +236,16 @@ export async function assistantReply(entries) {
     throw new AssistantUnavailableError(describeFailure(error));
   }
 
-  if (response.stop_reason === 'refusal') throw new AssistantUnavailableError('the model declined to answer');
+  const spent = { usage: response.usage, model: response.model };
+  if (response.stop_reason === 'refusal') throw new AssistantUnavailableError('the model declined to answer', spent);
 
   const text = response.content
     .filter(block => block.type === 'text')
     .map(block => block.text)
     .join('\n');
   const reply = sanitizeReply(text);
-  if (!reply) throw new AssistantUnavailableError(`the model returned no text (${response.stop_reason})`);
-  if (hasUnknownPhoneNumber(reply)) throw new AssistantUnavailableError('the reply contained a phone number that is not ours');
+  if (!reply) throw new AssistantUnavailableError(`the model returned no text (${response.stop_reason})`, spent);
+  if (hasUnknownPhoneNumber(reply)) throw new AssistantUnavailableError('the reply contained a phone number that is not ours', spent);
 
   return { reply, source: 'ai', model: response.model, usage: response.usage };
 }

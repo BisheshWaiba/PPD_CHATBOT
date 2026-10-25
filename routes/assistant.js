@@ -3,6 +3,7 @@ import { protect } from '../middleware/auth.js';
 import { assistantEnabled, assistantReply, safetyReply, AssistantUnavailableError } from '../util/assistant.js';
 import { validateAssistantEntries } from '../util/validation.js';
 import { RateLimiter } from '../util/rateLimit.js';
+import { budgetReached, recordSpend, costOfCall } from '../util/assistantBudget.js';
 
 const router = express.Router();
 
@@ -19,9 +20,10 @@ const fail = (res, status, message) => res.status(status).json({ success: false,
 const wrap = handler => (req, res, next) => handler(req, res, next).catch(next);
 
 // @route   GET /api/v1/assistant
-// @desc    Whether the AI conversation is switched on (an API key is set)
+// @desc    Whether the AI conversation is switched on: an API key is set, and today's budget (if one
+//          is set) is not used up. The chat page asks this to decide what to say in its welcome.
 router.get('/', (req, res) => {
-  res.json({ success: true, data: { enabled: assistantEnabled() } });
+  res.json({ success: true, data: { enabled: assistantEnabled() && !budgetReached() } });
 });
 
 // @route   POST /api/v1/assistant/reply
@@ -36,7 +38,7 @@ router.post('/reply', wrap(async (req, res) => {
   const safe = safetyReply(entries);
   if (safe) return res.json({ success: true, data: { reply: safe, source: 'safety' } });
 
-  if (!assistantEnabled()) return fail(res, 503, 'The assistant is not available right now.');
+  if (!assistantEnabled() || budgetReached()) return fail(res, 503, 'The assistant is not available right now.');
 
   for (const limiter of [perMinute, perDay]) {
     const limit = limiter.check(req.user.id);
@@ -50,10 +52,13 @@ router.post('/reply', wrap(async (req, res) => {
   perDay.hit(req.user.id);
 
   try {
-    const { reply, source } = await assistantReply(entries);
+    const { reply, source, model, usage } = await assistantReply(entries);
+    recordSpend(costOfCall(model, usage));
     res.json({ success: true, data: { reply, source } });
   } catch (error) {
     if (!(error instanceof AssistantUnavailableError)) throw error;
+    // A reply that was thrown away was still paid for
+    if (error.usage) recordSpend(costOfCall(error.model, error.usage));
     // The reason is for the server log. It never contains what the person wrote.
     console.error(`[assistant] no AI reply: ${error.reason}`);
     fail(res, 503, 'The assistant could not answer right now. Please try again in a moment.');

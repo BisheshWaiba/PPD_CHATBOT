@@ -23,6 +23,7 @@ if (!useMongo) process.env.AUTH_STORE = 'file';
 
 const { createApp } = await import('../app.js');
 const { initUserStore, getUserStore } = await import('../util/userStore.js');
+const { tuneServer } = await import('../util/serverTuning.js');
 const { signToken } = await import('../util/jwt.js');
 const { MAX_MESSAGES, MAX_CHATS } = await import('../util/historyStore.js');
 const { HISTORY_TEXT_MAX, HISTORY_BATCH_MAX } = await import('../util/validation.js');
@@ -40,7 +41,7 @@ before(async () => {
   } else {
     initUserStore({ mongoConnected: false });
   }
-  server = createApp().listen(0);
+  server = tuneServer(createApp().listen(0));
   await new Promise(resolve => server.once('listening', resolve));
   base = `http://127.0.0.1:${server.address().port}`;
 });

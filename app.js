@@ -7,6 +7,8 @@ import historyRoutes from './routes/history.js';
 import assistantRoutes from './routes/assistant.js';
 import accountRoutes from './routes/account.js';
 import { isProduction } from './util/paths.js';
+import { isReady } from './util/health.js';
+import { redirectToHttps } from './middleware/https.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -58,6 +60,17 @@ export function createApp() {
     }
     next();
   });
+
+  // For a host's health check or an uptime monitor: 200 when the app can do its job, 503 when not.
+  // It comes before everything else so it never depends on anything else working.
+  app.get('/healthz', (req, res) => {
+    const ready = isReady();
+    res.set('Cache-Control', 'no-store');
+    res.status(ready ? 200 : 503).json({ status: ready ? 'ok' : 'unavailable' });
+  });
+
+  // In production, send anyone who arrived over plain HTTP to the HTTPS address
+  app.use(redirectToHttps);
 
   // The site and the API share one origin, so CORS stays off unless origins are listed
   if (process.env.CORS_ORIGIN) {

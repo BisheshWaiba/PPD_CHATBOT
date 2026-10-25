@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="What Sutkeri keeps about you, who sees it, how long it is kept, and how to take it with you or delete it." />
+    <title>Sutkeri — Privacy Policy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background: var(--ground);
+      }
+
+      .legal-page {
+        flex: 1;
+        padding: 48px 0 72px;
+      }
+
+      .legal-wrap {
+        max-width: 820px;
+      }
+
+      .legal-wrap h1 {
+        margin-bottom: 10px;
+        font-size: clamp(30px, 4vw, 40px);
+        line-height: 1.1;
+      }
+
+      .legal-meta {
+        margin: 0 0 8px;
+        font-size: 15px;
+        color: var(--ink-soft);
+      }
+
+      .legal-lead {
+        max-width: 640px;
+        margin: 0 0 8px;
+        font-size: 19px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+
+      .legal-wrap h2 {
+        margin: 40px 0 12px;
+        font-size: 24px;
+      }
+
+      .legal-wrap p,
+      .legal-wrap li {
+        max-width: 68ch;
+        font-size: 17px;
+        line-height: 1.6;
+      }
+
+      .legal-wrap p {
+        margin: 0 0 14px;
+      }
+
+      .legal-wrap ul {
+        margin: 0 0 14px;
+        padding-left: 22px;
+      }
+
+      .legal-wrap li {
+        margin-bottom: 6px;
+      }
+
+      .legal-wrap a {
+        font-weight: 600;
+        color: var(--berry-dark);
+        text-decoration: underline;
+      }
+
+      .legal-table {
+        width: 100%;
+        margin: 4px 0 18px;
+        border: 1px solid var(--line);
+        border-collapse: collapse;
+        background: var(--surface);
+        font-size: 16px;
+      }
+
+      .legal-table th,
+      .legal-table td {
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+        line-height: 1.5;
+      }
+
+      .legal-table th {
+        font-weight: 600;
+        background: var(--blush);
+      }
+
+      .legal-note {
+        margin: 18px 0;
+        padding: 14px 18px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      /* A blank that the person running Sutkeri must fill in before launch */
+      .todo {
+        padding: 0 4px;
+        border-radius: 4px;
+        background: #FFF1A8;
+        color: #4A3B00;
+      }
+
+      .legal-footer {
+        padding: 28px 0;
+      }
+
+      .legal-footer .footer-copyright {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      @media (max-width: 700px) {
+        .legal-table,
+        .legal-table tbody,
+        .legal-table tr,
+        .legal-table th,
+        .legal-table td {
+          display: block;
+          width: 100%;
+        }
+
+        .legal-table thead {
+          display: none;
+        }
+
+        .legal-table td:first-child {
+          font-weight: 600;
+          background: var(--blush);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Shared icons -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <symbol id="mom-mark" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="18" fill="#B83A62"/>
+        <circle cx="18" cy="18" r="8.5" fill="none" stroke="#FCE3D0" stroke-width="3"/>
+        <circle cx="18" cy="18" r="2.8" fill="#FCE3D0"/>
+      </symbol>
+    </svg>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a href="/" class="logo">
+          <svg class="logo-mark" aria-hidden="true"><use href="#mom-mark"/></svg>
+          <span class="logo-text">Sutkeri</span>
+        </a>
+
+        <nav class="nav-links" aria-label="Main">
+          <a href="/" class="nav-link">Home</a>
+          <a href="/aboutus.html" class="nav-link">About</a>
+          <a href="/chat.html" class="nav-link">Assistant</a>
+          <div class="auth-buttons">
+            <a href="/login.html" class="login-btn">Log in</a>
+            <a href="/signup.html" class="signup-btn">Sign up</a>
+          </div>
+          <div class="profile-section">
+            <button type="button" class="profile-icon" aria-label="Account menu" aria-haspopup="true"></button>
+            <div class="profile-dropdown"></div>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="legal-page">
+      <div class="container legal-wrap">
+        <h1>Privacy Policy</h1>
+        <p class="legal-meta">Last updated: <mark class="todo">[[DATE]]</mark></p>
+        <p class="legal-lead">What Sutkeri keeps about you, who else sees it, how long it is kept, and how to take it with you or delete it. We have tried to say it plainly.</p>
+
+        <h2>1. Who we are</h2>
+        <p>Sutkeri is run by <mark class="todo">[[NAME OF THE ORGANISATION OR PERSON RUNNING SUTKERI]]</mark>, <mark class="todo">[[ADDRESS AND COUNTRY]]</mark>. In this policy, "we" means them. You can write to us at <mark class="todo">[[CONTACT EMAIL THAT SOMEONE READS]]</mark>.</p>
+        <p>Sutkeri is a place for new mothers, partners and families to check in after a birth. It is not a medical service, and it is not for emergencies. See the <a href="/terms.html">Terms of use</a>.</p>
+
+        <h2>2. What we keep about you</h2>
+        <table class="legal-table">
+          <thead>
+            <tr><th>What</th><th>Details</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Your account</td>
+              <td>Your name, your email address, the date you signed up, and whether you have confirmed your email. Your password is never kept as you typed it: only a one-way scrambled form of it, which cannot be turned back into the password.</td>
+            </tr>
+            <tr>
+              <td>Your chats</td>
+              <td>The words you and Sutkeri write to each other, with the time of each message, saved to your account so that you can read them again under History. This includes what you type in the guided questions (such as your age and your baby's birth date), your answers to the ten check-in questions, and the score you were shown. Everything you type in the chat is saved, so please do not type anything you would not want kept.</td>
+            </tr>
+            <tr>
+              <td>In your browser</td>
+              <td>Your sign-in, so that you stay signed in, and your check-in answers and score, so that the printable results page can show them. They stay on your device and are removed when you log out. We use no cookies, no advertising, and no tracking or analytics tools.</td>
+            </tr>
+            <tr>
+              <td>Short-lived records</td>
+              <td>When you sign out, a record of that sign-in is kept until it would have run out anyway, so that it cannot be used again. A link for confirming your email or choosing a new password is kept (only in a form that cannot be used to rebuild the link) until it expires, after 2 days or 1 hour. To slow down people guessing passwords, we count recent sign-in attempts by network address and email, in the server's memory, for a few minutes or hours.</td>
+            </tr>
+            <tr>
+              <td>The network address you connect from</td>
+              <td>Our hosting provider, <mark class="todo">[[HOSTING PROVIDER]]</mark>, sees the network address (IP address) of every visit, as every website host does, and may keep it in its logs for <mark class="todo">[[HOW LONG THE HOST KEEPS LOGS]]</mark>.</td>
+            </tr>
+            <tr>
+              <td>Email we send you</td>
+              <td>When you sign up, ask for a new password, or change it, we send you an email through <mark class="todo">[[EMAIL PROVIDER]]</mark>. They see your address and the message.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p><mark class="todo">[[NEWSLETTER: the "Stay updated" box on the home page is not connected to anything yet. Either remove the box and delete this line, or connect it and describe here what is done with the email addresses.]]</mark></p>
+        <p>We do not ask for, and have no way to ask for, your location, your contacts, or your health records.</p>
+
+        <h2>3. Why we use it</h2>
+        <ul>
+          <li>To run your account and let you sign in.</li>
+          <li>To show you your chats and your results, and to let you print them for your health provider.</li>
+          <li>To write the replies in the chat (see the next section).</li>
+          <li>To email you about your account, only when you ask for something or sign up.</li>
+          <li>To keep the service safe: to slow down password guessing and to find and fix faults.</li>
+        </ul>
+        <p>We do not sell your information, and we do not use it for advertising. You agree to this policy when you create your account, and you can withdraw by deleting your account at any time.</p>
+
+        <h2>4. The AI conversation</h2>
+        <p>When the AI conversation is switched on, an AI model writes Sutkeri's replies when you just talk (how you feel, your baby, everyday talk). It does not write the guided questions, the check-in or its results, the helplines, or the reply to a message about harming yourself or your baby: those are written in advance.</p>
+        <p>To write a reply, the most recent messages of that chat, up to 16, are sent to <strong>Anthropic, PBC</strong>, the company that runs the AI model. These can include what you typed in the guided questions, such as your age and your baby's birth date, and Sutkeri's earlier replies. We do not send your name, your email address, or anything that identifies your account. We cannot stop you from typing your name, a phone number or an address into the chat, so please do not.</p>
+        <p>Anthropic handles that text under its own terms and privacy policy. <mark class="todo">[[ADD A LINK TO ANTHROPIC'S CURRENT PRIVACY POLICY AND API TERMS, AND STATE IN A SENTENCE WHAT THOSE TERMS SAY ABOUT HOW LONG IT KEEPS API DATA AND WHETHER IT TRAINS ON IT. CHECK THIS FOR YOURSELF.]]</mark></p>
+        <p>The AI can be wrong. It is told never to diagnose, never to give advice about medicines, and to send you to a health provider or the hospital for physical warning signs. It is not a substitute for any of them. When the AI is switched off, nothing is sent to anyone, and the chat uses written replies instead.</p>
+
+        <h2>5. Who else sees it</h2>
+        <p>We use these services to run Sutkeri. They handle your information only to provide that service to us.</p>
+        <table class="legal-table">
+          <thead>
+            <tr><th>Who</th><th>What they do, and what they see</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><mark class="todo">[[HOSTING PROVIDER]]</mark></td><td>Runs the website. Sees every visit and its network address.</td></tr>
+            <tr><td><mark class="todo">[[DATABASE PROVIDER, FOR EXAMPLE MONGODB ATLAS, AND ITS REGION]]</mark></td><td>Stores accounts and chats.</td></tr>
+            <tr><td><mark class="todo">[[EMAIL PROVIDER]]</mark></td><td>Sends our emails to you.</td></tr>
+            <tr><td>Anthropic, PBC</td><td>Writes the AI replies (section 4).</td></tr>
+            <tr><td>Google (Google Fonts)</td><td>Our pages load their lettering from Google's servers. So Google receives your network address and browser details when a page loads, as for any page that uses Google Fonts. We do not send Google anything else.</td></tr>
+          </tbody>
+        </table>
+        <p>We may also have to share information if the law requires it. <mark class="todo">[[ANY OTHER RECIPIENTS, OR DELETE THIS NOTE]]</mark></p>
+        <p>Some of these services are outside your country. <mark class="todo">[[SAY WHERE YOUR INFORMATION IS HELD AND WHAT PROTECTS IT WHEN IT LEAVES YOUR COUNTRY, WITH ADVICE FROM SOMEONE QUALIFIED]]</mark></p>
+
+        <h2>6. How long we keep it</h2>
+        <ul>
+          <li><strong>Your account and chats:</strong> until you delete them, or delete your account. <mark class="todo">[[IF YOU SET CHAT_HISTORY_DAYS, REPLACE THE LINE ABOVE WITH: "Each chat is deleted N days after its last message." OTHERWISE KEEP IT AS IT IS.]]</mark></li>
+          <li><strong>Backups:</strong> <mark class="todo">[[HOW LONG BACKUPS OF THE DATABASE ARE KEPT. DELETED DATA CAN STAY IN BACKUPS UNTIL THEY EXPIRE.]]</mark></li>
+          <li><strong>Everything else above:</strong> only for the short times described in section 2.</li>
+        </ul>
+
+        <h2>7. Your choices</h2>
+        <ul>
+          <li><strong>See and take it with you.</strong> On the <a href="/account.html">Account &amp; privacy</a> page, "Download my data" gives you one file with your account details and the full text of every saved chat.</li>
+          <li><strong>Delete a chat, or all of them.</strong> Under <a href="/history.html">History</a>.</li>
+          <li><strong>Delete your account.</strong> On the Account &amp; privacy page. It removes your account and every saved chat straight away and signs you out everywhere. It cannot be undone.</li>
+          <li><strong>Everything else.</strong> To correct something, to ask a question, or to object to how we use your information, write to <mark class="todo">[[CONTACT EMAIL THAT SOMEONE READS]]</mark>. If you are not happy with our answer, you can complain to <mark class="todo">[[THE DATA PROTECTION AUTHORITY OR OTHER BODY THAT APPLIES IN YOUR COUNTRY]]</mark>.</li>
+        </ul>
+
+        <h2>8. How we keep it safe</h2>
+        <p>Pages are sent over HTTPS. Passwords are stored only in scrambled form. A sign-in stops working when you log out, when it runs out, and when your password is changed. Repeated wrong passwords are slowed down. Access to the database is limited to the people who run Sutkeri. No system is perfectly safe. If something happens that puts your information at risk, we will tell you <mark class="todo">[[HOW AND HOW QUICKLY YOU WILL TELL PEOPLE]]</mark>.</p>
+
+        <h2>9. Young people</h2>
+        <p><mark class="todo">[[DECIDE AND WRITE: WHO MAY USE SUTKERI, AND WHAT YOU DO ABOUT PEOPLE UNDER 18. THE CHAT TODAY WELCOMES YOUNG MOTHERS AND ONLY SUGGESTS TALKING WITH A TRUSTED ADULT. SEEK ADVICE ABOUT CONSENT AT YOUR LOCAL AGE.]]</mark></p>
+
+        <h2>10. Changes to this policy</h2>
+        <p>If we change this policy in a way that matters, we will say so on this page and, where we can, tell you by email. The date at the top shows when it was last changed.</p>
+
+        <div class="legal-note">
+          <p><strong>If you or your baby may be in danger right now,</strong> go to the nearest hospital emergency room. In Nepal you can also call the National Suicide Prevention Helpline on 1166.</p>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer legal-footer">
+      <div class="container">
+        <div class="footer-copyright">
+          <span>&copy; 2026 Sutkeri, your postpartum care companion. <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></span>
+          <span>Sutkeri is not a substitute for professional medical advice.</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/js/auth.js"></script>
+  </body>
+</html>

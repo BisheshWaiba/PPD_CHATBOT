@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import mongoose from 'mongoose';
+import { writeFileAtomic } from './atomicWrite.js';
 import User from '../models/User.js';
 import RevokedToken from '../models/RevokedToken.js';
 import AuthToken from '../models/AuthToken.js';
@@ -160,10 +161,7 @@ function createFileStore() {
   }
 
   function save() {
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    const tmp = `${file}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(db, null, 2), { mode: 0o600 });
-    fs.renameSync(tmp, file);
+    writeFileAtomic(file, JSON.stringify(db, null, 2));
   }
 
   return {

@@ -61,6 +61,12 @@ function smtpTransport() {
   return cached.transporter;
 }
 
+// Connects to the mail server and logs in, without sending anything. For `npm run check:production`.
+export async function verifyMailServer() {
+  if (transport?.verify) return transport.verify();
+  return smtpTransport().verify();
+}
+
 // Sends one plain-text email. Throws if the mail cannot be sent: callers decide what that means.
 export async function sendMail({ to, subject, text }) {
   const mode = mailMode();
