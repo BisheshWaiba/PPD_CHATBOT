@@ -95,10 +95,37 @@ test('crisis phrases are detected in English and Nepali', () => {
   }
 });
 
+test('quieter ways of saying it are caught too: wanting to disappear, others better off without me', () => {
+  for (const text of [
+    'Everyone would be fine if I just disappeared.', 'my family would be better off without me',
+    'They would be happier if I was gone', 'I wish I could just disappear', 'I just want to disappear',
+    'I never want to wake up', "I hope I don't wake up tomorrow", 'I wish I could go to sleep and not wake up'
+  ]) {
+    assert.ok(detectCrisis(text), text);
+  }
+});
+
+test('crisis phrases are caught in Nepali written with English letters, and in more Devanagari wordings', () => {
+  for (const text of [
+    'ma marna chahanchhu, bachna man chhaina', 'malai marna man lagyo', 'aatmahatya garna man lagyo',
+    'atma hatya', 'bachna chahdina', 'Bachna man nai chaina', 'afulai marna man lagyo', 'aafulai haani garchhu',
+    'baccha lai maarna man lagyo', 'mero baccha lai harm garna man lagyo',
+    'म बाँच्न चाहन्न', 'म बाच्न चाहदिन', 'ज्यान दिन मन लाग्छ'
+  ]) {
+    assert.ok(detectCrisis(text), text);
+  }
+});
+
 test('everyday sentences do not trigger the crisis reply', () => {
   for (const text of [
     'what is postpartum depression', 'I hurt my back lifting the baby', 'my baby is a killer sleeper',
-    'I am so tired I could sleep for a week', 'hello', 'who won the match', 'विशेष दिन'
+    'I am so tired I could sleep for a week', 'hello', 'who won the match', 'विशेष दिन',
+    // New wordings must not catch ordinary tiredness and everyday talk
+    'I am dying for some sleep', 'I could kill for a nap', 'this baby is killing me with no sleep',
+    'the baby woke up at three and would not go back to sleep', 'everyone would be fine with rice for dinner',
+    'my mother in law said they would be fine without me for a day, so I went to the shop', "I don't want to wake up for the night feed", 'I wish the baby would sleep and not wake up every hour', "I wish the baby wouldn't wake up so often", "I hope the baby doesn't wake up again tonight", 'malai thakai lagyo ra nindra lagdaina',
+    'ma bachcha lai dudh khuwauchhu', 'bachna ko lagi dhyan dinu parchha',
+    'बच्चा सुत्यो, म पनि सुत्न चाहन्छु'
   ]) {
     assert.ok(!detectCrisis(text), text);
   }
@@ -210,10 +237,24 @@ test('on-topic questions are recognised', () => {
     'I cry every day': 'feelings',
     'hello': 'greeting',
     'thanks': 'thanks',
+    // Nepali greetings and thanks (a regular \b never matches after Devanagari)
+    'नमस्ते': 'greeting',
+    'नमस्कार दिदी': 'greeting',
+    'धन्यवाद': 'thanks',
+    'धन्यवाद, तपाईंलाई': 'thanks',
+    'hello there': 'greeting',
+    'helloooo': 'offtopic',
     '3': 'menu_3',
     'menu': 'menu',
     'yes': 'yes',
     'heavy bleeding': 'urgent_medical',
+    // Warning signs in other words
+    'I feel feverish and shivery': 'urgent_medical',
+    'the bleeding will not stop': 'urgent_medical',
+    "I can't get the blood to stop": 'urgent_medical',
+    'I am changing pads every half hour since this morning': 'urgent_medical',
+    'every hour I need a new pad': 'urgent_medical',
+    'I passed clots as big as an egg': 'urgent_medical',
     'which tablet should I take': 'medication'
   };
   for (const [text, expected] of Object.entries(cases)) {

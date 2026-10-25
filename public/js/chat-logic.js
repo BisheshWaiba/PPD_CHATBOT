@@ -53,7 +53,9 @@ export const HELPLINES = {
 /* Safety: thoughts of self-harm or harming the baby                   */
 /* ------------------------------------------------------------------ */
 
-const CRISIS_PATTERNS = [
+// Over-detecting only costs a gentle message with helplines; missing a message like this is
+// dangerous. So these lean towards catching too much. Exported so the review pack can list them.
+export const CRISIS_PATTERNS = [
   /suicid/i,
   /\bkill(ing)? my ?self\b/i,
   /\bend(ing)? (my|my own) life\b/i,
@@ -69,15 +71,29 @@ const CRISIS_PATTERNS = [
   /\boverdos/i,
   /\bcan'?t (go on|take it anymore|do this anymore)\b/i,
   /\bthoughts? of (death|dying)\b/i,
+  // Quieter ways of saying it: wanting to disappear, or that others would be better off
+  /\b(everyone|everybody|they|he|she|my (family|husband|baby|partner)) (would|will|'d) be (better|fine|happier|safer|okay)\b.{0,40}\b(without me(?!\s+for\b)|if i (was|were) gone|if i (just )?disappear\w*|if i (was|were) not here|if i (just )?(left|vanished))/i,
+  /\b(want|wanna|wish) (to|i could|i could just|i would) (just )?(disappear|vanish)\b/i,
+  /\bnever (want to )?wake up\b/i,
+  // About the person herself ("I hope I don't wake up"), not about the baby waking
+  /\b(wish|hope) (that )?i\b.{0,10}\b(never|not|don'?t|do not|didn'?t|wouldn'?t|won'?t)\b.{0,10}\bwake up\b/i,
+  /\bi (could|would|just|can|want to|wanna)\s+(go to sleep|fall asleep|sleep)\s+and\s+(not|never)\s+wake up\b/i,
   // Nepali
   /आत्महत्या/,
   /मर्न\s*(मन|चाहन|खोज)/,
-  /बाँच्न\s*मन\s*छैन/,
-  /बाच्न\s*मन\s*छैन/,
+  /बाँच्न\s*(मन\s*छैन|चाहन्न|चाहदिन|चाहँदिन|चाहँदैन)/,
+  /बाच्न\s*(मन\s*छैन|चाहन्न|चाहदिन|चाहँदिन|चाहँदैन)/,
   /आफू?लाई\s*(मार्न|हानि)/,
   /आफैलाई\s*(मार्न|हानि)/,
   /(बच्चा|शिशु|नानी)(लाई)?\s*(हानि|मार्न)/,
-  /जीवन\s*समाप्त/
+  /जीवन\s*समाप्त/,
+  /ज्यान\s*(दिन|फाल्न|लिन)/,
+  // Nepali written in English letters (to be confirmed and extended by a Nepali speaker)
+  /\baa?tma\s*hatya\b/i,
+  /\bmarna\s+(man|chah|chaah|khoj)/i,
+  /\bbachna\s+(man\s+)?(nai\s+)?(chhaina|chaina|chhainaa|lagdaina|chahdina|chahdaina|chahanna|chahinna)/i,
+  /\baa?fu\s*lai\s+(maa?rn|haani|hani|harm)/i,
+  /\b(baccha|bachha|bachcha|nani|shishu)\s*lai\s+(maa?rn|haani|hani|harm|chot)/i
 ];
 
 export function detectCrisis(text) {
@@ -509,6 +525,19 @@ export function numberedOptions(text) {
   return options.length >= 2 ? options : [];
 }
 
+// Warning signs in the mother's body. Anything here gets the fixed "contact your health provider
+// now" reply and never an open conversation. Leaning towards catching too much: a reply that
+// sends her to a health worker for nothing costs little, a missed haemorrhage costs a lot.
+const URGENT_PHYSICAL = [
+  /\b(heavy bleeding|bleeding (a lot|heavily|too much)|soaking (a|through)|fever\w*|chest pain|can'?t breathe|seizure|faint(ed|ing)?|severe headache|blurred vision|swollen leg|pus|foul smell)\b/,
+  // bleeding that will not stop, pads filling fast, large clots
+  /\b(bleeding|blood)\b.{0,30}\b(won'?t|not|can'?t|cannot|isn'?t|hasn'?t)\b.{0,12}\bstop/,
+  /\b(can'?t|cannot|unable to)\b.{0,25}\b(bleeding|blood)\b.{0,15}\bstop/,
+  /\bpads?\b.{0,40}\b(every|each)\b.{0,15}\b(half|hour|minutes?|mins?)\b/,
+  /\b(every|each)\b.{0,15}\b(half|hour|minutes?|mins?)\b.{0,40}\bpads?\b/,
+  /\bclots?\b.{0,30}\b(big|large|size of|bigger|golf|egg|fist|lemon)\b|\b(big|large|golf|egg|fist|lemon)\b.{0,20}\bclots?\b/
+];
+
 /**
  * Decides what a free-text message is about. The assistant only answers topics it has
  * written, reviewed answers for. Everything else gets a polite "I can't help with that".
@@ -527,8 +556,9 @@ export function classifyMessage(text) {
   if (/^(menu|help|options|\?|मेनु|सहयोग)$/.test(t)) return 'menu';
 
   const short = t.split(' ').length <= 4;
-  if (short && /^(hi|hello|hey|namaste|namaskar|good (morning|afternoon|evening)|नमस्ते|नमस्कार)\b/.test(t)) return 'greeting';
-  if (short && /^(thanks|thank you|thankyou|thx|धन्यवाद)\b/.test(t)) return 'thanks';
+  // \b does not work next to Devanagari letters, so the word ends where no other letter or mark follows
+  if (short && /^(hi|hello|hey|namaste|namaskar|good (morning|afternoon|evening)|नमस्ते|नमस्कार)(?![\p{L}\p{M}])/u.test(t)) return 'greeting';
+  if (short && /^(thanks|thank you|thankyou|thx|धन्यवाद)(?![\p{L}\p{M}])/u.test(t)) return 'thanks';
   if (short && /^(bye|goodbye|good night|see you)\b/.test(t)) return 'bye';
 
   // Topic answers must name the topic, so "what causes earthquakes" never gets a postpartum answer.
@@ -542,7 +572,7 @@ export function classifyMessage(text) {
   if (/\b(epds|edinburgh|questionnaire|screening|check-?in)\b|\b(take|start|begin|do) (the |a |my )?(test|quiz|check)\b/.test(t)) return 'epds';
   if (/\b(symptom|symptoms)\b|लक्षण/.test(t)) return 'symptoms';
 
-  if (/\b(heavy bleeding|bleeding (a lot|heavily|too much)|soaking (a|through)|fever|chest pain|can'?t breathe|seizure|faint(ed|ing)?|severe headache|blurred vision|swollen leg|pus|foul smell)\b/.test(t)) return 'urgent_medical';
+  if (URGENT_PHYSICAL.some((re) => re.test(t))) return 'urgent_medical';
   if (/\b(medicine|medication|medicines|tablet|tablets|dose|dosage|antidepressants?|paracetamol|ibuprofen|pills?|injection)\b|औषधि|औषधी/.test(t)) return 'medication';
 
   if (/\b(helplines?|hotlines?|emergency|crisis|counsell?or|counsell?ing|therapist|who can i (call|talk to))\b|हेल्पलाइन|परामर्श/.test(t)) return 'helpline';

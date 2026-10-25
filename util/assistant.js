@@ -36,6 +36,22 @@ export class AssistantUnavailableError extends Error {
   }
 }
 
+// Dollars per million tokens (input, output), from Anthropic's published prices
+const PRICES = {
+  'claude-opus-5-5': [4, 20],
+  'claude-opus-5': [5, 25],
+  'claude-sonnet-5-5': [2, 10],
+  'claude-sonnet-5': [2, 10],
+  'claude-haiku-5-5': [0.1, 0.5]
+};
+
+// What one reply cost in dollars, or null when the model's price is not known here
+export function estimateCost(model, usage = {}) {
+  const price = PRICES[model];
+  if (!price) return null;
+  return ((usage.input_tokens || 0) * price[0] + (usage.output_tokens || 0) * price[1]) / 1e6;
+}
+
 export const assistantEnabled = () => Boolean(process.env.ANTHROPIC_API_KEY?.trim());
 export const assistantModel = () => process.env.ASSISTANT_MODEL?.trim() || DEFAULT_MODEL;
 

@@ -9,6 +9,9 @@ node_modules/
 # Local development data (user file and generated JWT secret)
 data/
 
+# The review pack (npm run review:pack). It is made to be handed to reviewers, not committed.
+review/
+
 # OS / editor
 .DS_Store
 Thumbs.db

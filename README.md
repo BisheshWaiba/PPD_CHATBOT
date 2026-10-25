@@ -240,6 +240,31 @@ chat page (`public/js/chatbot-client.js`) decides who answers with `wantsAssista
 `public/js/chat-logic.js`. The tests use a fake of the Anthropic API, so no real account is needed
 to run them.
 
+### Trying it with a real key, and getting it reviewed
+
+1. `npm run check:assistant` asks the real model one question and prints the reply, how long it
+   took and what it cost. Do this first: it tells you at once if the key, the credit or the
+   model name is wrong.
+2. `npm run review:pack -- --with-replies` asks it 27 made-up messages (about 20 cents on the
+   default model): ordinary feelings, loss, physical warning signs, medicine questions,
+   distress in words the code does not recognise, Nepali, and attempts to make it break its
+   rules. Each reply gets a first automatic check (no lists, no diagnosis, no doses, the right
+   language, "go to the hospital" when it should), and everything is written to
+   `review/review-pack.html`. It stops after two failed calls in a row, so a bad key costs nothing.
+3. `npm run review:pack` without `--with-replies` is free and needs no key. It makes the same page
+   with everything that does not need the AI: the AI's exact instructions, what the safety code
+   recognises (and what it misses), every fixed text, and the Nepali next to the English.
+4. Give the page to a clinician (midwife, nurse, doctor or psychologist) and to a Nepali speaker.
+   It says what to look at and has the questions for each. Open it in a browser and print it or
+   save it as a PDF. The automatic checks only catch clear mistakes; kindness and accuracy need
+   a person.
+
+The made-up messages are in `util/assistantReview.js`. Add to them freely: a test checks that each
+one still reaches the layer it says it does (the code's safety reply, a fixed reply, or the AI).
+The code's crisis and warning-sign rules deliberately catch too much rather than too little. The
+Nepali phrases in them (in Devanagari and in English letters) are marked as needing a Nepali
+speaker's confirmation and extension.
+
 ## Tests
 
 ```bash

@@ -1,16 +1,7 @@
 // Tries the AI conversation once with the key in .env, so you can see it work (and what it costs)
 // without opening the browser:   npm run check:assistant
 import 'dotenv/config';
-import { assistantEnabled, assistantModel, assistantReply, AssistantUnavailableError } from '../util/assistant.js';
-
-// Dollars per million tokens (input, output), from Anthropic's published prices
-const PRICES = {
-  'claude-opus-5-5': [4, 20],
-  'claude-opus-5': [5, 25],
-  'claude-sonnet-5-5': [2, 10],
-  'claude-sonnet-5': [2, 10],
-  'claude-haiku-5-5': [0.1, 0.5]
-};
+import { assistantEnabled, assistantModel, assistantReply, estimateCost, AssistantUnavailableError } from '../util/assistant.js';
 
 if (!assistantEnabled()) {
   console.error('ANTHROPIC_API_KEY is not set. Add it to .env (see .env.example), then run this again.');
@@ -33,9 +24,8 @@ try {
   const usage = result.usage || {};
   console.log(`Tokens: ${usage.input_tokens} in, ${usage.output_tokens} out` +
     (usage.cache_read_input_tokens ? `, ${usage.cache_read_input_tokens} read from cache` : ''));
-  const price = PRICES[model];
-  if (price) {
-    const cost = (usage.input_tokens * price[0] + usage.output_tokens * price[1]) / 1e6;
+  const cost = estimateCost(model, usage);
+  if (cost !== null) {
     console.log(`About $${cost.toFixed(4)} for this reply (a longer chat sends more earlier messages, so costs a little more).`);
   }
   console.log('\nThe AI conversation is working.');
