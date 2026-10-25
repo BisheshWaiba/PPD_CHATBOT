@@ -1,5 +1,8 @@
 // Password reset and email confirmation. Run with: npm test
 //
+// Uses the local files in a temporary folder by default. Set TEST_MONGO_URI to a MongoDB to run the
+// same tests against the MongoDB store.
+//
 // Emails are caught by a stand-in transport, so nothing is sent. Every test uses its own made-up
 // visitor address (through X-Forwarded-For), so the rate limits of one test never affect another.
 import { test, before, after, beforeEach } from 'node:test';
@@ -11,6 +14,7 @@ import http from 'http';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
+import { connectTestDatabase, dropTestDatabase } from './support/mongo.js';
 
 const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
@@ -18,7 +22,6 @@ const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mom-reset-test-'));
 process.env.JWT_SECRET = 'test-secret-'.padEnd(48, 'x');
 process.env.BCRYPT_ROUNDS = '4';
 process.env.AUTH_DATA_DIR = dataDir;
-process.env.AUTH_STORE = 'file';
 process.env.NODE_ENV = 'test';
 process.env.TRUST_PROXY = 'true';
 process.env.APP_URL = 'https://sutkeri.test/';
@@ -26,10 +29,16 @@ process.env.SMTP_HOST = 'smtp.invalid';
 process.env.MAIL_FROM = 'Sutkeri <no-reply@sutkeri.test>';
 delete process.env.CORS_ORIGIN;
 
+const useMongo = Boolean(process.env.TEST_MONGO_URI);
+if (!useMongo) process.env.AUTH_STORE = 'file';
+
 const { createApp } = await import('../app.js');
 const { initUserStore, getUserStore } = await import('../util/userStore.js');
 const { setMailTransport, appUrl, mailMode } = await import('../util/mailer.js');
 const { hashToken, newToken, looksLikeToken } = await import('../util/authTokens.js');
+const mongoose = (await import('mongoose')).default;
+const User = (await import('../models/User.js')).default;
+const AuthToken = (await import('../models/AuthToken.js')).default;
 
 let server;
 let base;
@@ -38,7 +47,14 @@ let outbox = [];
 let mailFails = false;
 
 before(async () => {
-  initUserStore({ mongoConnected: false });
+  if (useMongo) {
+    await connectTestDatabase('password-reset');
+    await User.init(); // build the unique email index
+    await AuthToken.init(); // and the unique and expiry indexes of the links
+    initUserStore({ mongoConnected: true });
+  } else {
+    initUserStore({ mongoConnected: false });
+  }
   setMailTransport({
     sendMail: async message => {
       if (mailFails) throw new Error('smtp is down');
@@ -53,6 +69,9 @@ before(async () => {
 
 after(async () => {
   await new Promise(resolve => server.close(resolve));
+  if (useMongo) {
+    await dropTestDatabase();
+  }
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
 
@@ -473,10 +492,12 @@ test('with no email on this server, asking for a link says so plainly', async ()
 
 // ---------------------------------------------------------------- choosing a new password
 
+// Asks for a link and returns the one that arrives. The email is sent in the background, so it is
+// counted BEFORE asking: a database that takes a few milliseconds must not make us pick up the old one.
 async function resetLink(user) {
+  const before = outbox.filter(mail => mail.to === user.email && /Reset your/.test(mail.subject)).length;
   await call('/api/v1/auth/forgot-password', { body: { email: user.email } });
-  const count = outbox.filter(mail => mail.to === user.email && /Reset your/.test(mail.subject)).length;
-  return linkIn(await mailTo(user.email, { subject: /Reset your/, count: count || 1 })).token;
+  return linkIn(await mailTo(user.email, { subject: /Reset your/, count: before + 1 })).token;
 }
 
 test('the whole journey: forgot, reset, old password and old sign-ins stop, new ones work', async () => {
@@ -646,9 +667,9 @@ test('a weak password is not counted as a bad link', async () => {
 
 test('after a reset, the next reset works too (the sign-in check keeps counting)', async () => {
   const user = await newUser({ verified: true });
-  await call('/api/v1/auth/reset-password', { body: { token: await resetLink(user), password: 'second password here' } });
+  assert.equal((await call('/api/v1/auth/reset-password', { body: { token: await resetLink(user), password: 'second password here' } })).status, 200);
   const signedIn = (await call('/api/v1/auth/login', { body: { email: user.email, password: 'second password here' } })).body.token;
-  await call('/api/v1/auth/reset-password', { body: { token: await resetLink(user), password: 'third password here' } });
+  assert.equal((await call('/api/v1/auth/reset-password', { body: { token: await resetLink(user), password: 'third password here' } })).status, 200);
   assert.equal((await me(signedIn)).status, 401);
   assert.equal((await call('/api/v1/auth/login', { body: { email: user.email, password: 'third password here' } })).status, 200);
 });
@@ -660,9 +681,18 @@ test('only a hash of each link is stored, never the link itself', async () => {
   const token = await resetLink(user);
   await sleep(50);
 
-  const stored = fs.readFileSync(path.join(dataDir, 'users.json'), 'utf8');
-  assert.ok(!stored.includes(token), 'the link itself must not be on disk');
-  const waiting = JSON.parse(stored).authTokens.find(entry => entry.userId === user.id && entry.purpose === 'reset');
+  let stored;
+  let waiting;
+  if (useMongo) {
+    const entries = await AuthToken.find().lean();
+    stored = JSON.stringify(entries);
+    waiting = entries.find(entry => entry.userId === user.id && entry.purpose === 'reset');
+    if (waiting) waiting = { ...waiting, expiresAt: waiting.expiresAt.getTime() };
+  } else {
+    stored = fs.readFileSync(path.join(dataDir, 'users.json'), 'utf8');
+    waiting = JSON.parse(stored).authTokens.find(entry => entry.userId === user.id && entry.purpose === 'reset');
+  }
+  assert.ok(!stored.includes(token), 'the link itself must not be in the database');
   assert.ok(waiting, 'the link is waiting to be used');
   assert.equal(waiting.hash, hashToken(token));
   assert.ok(waiting.expiresAt > Date.now() && waiting.expiresAt <= Date.now() + 60 * 60 * 1000, 'valid for at most an hour');
@@ -677,20 +707,23 @@ test('nothing about links or sign-in versions appears in what the API shows abou
 
 test('accounts made before this existed show as not confirmed, and their sign-ins keep working', async () => {
   // A record and a token exactly as the earlier version wrote them: no emailVerified, no tokenVersion, no "tv"
-  const file = path.join(dataDir, 'users.json');
-  await sleep(200); // let anything still being written finish
-  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-  const legacy = {
-    id: 'legacy-account-1',
-    name: 'Old Account',
-    email: 'old-account@example.com',
-    passwordHash: await bcrypt.hash('correct horse battery', 4),
-    role: 'user',
-    createdAt: '2025-01-01T00:00:00.000Z'
-  };
-  data.users.push(legacy);
-  fs.writeFileSync(file, JSON.stringify(data));
-  initUserStore({ mongoConnected: false }); // reads the file again
+  const legacy = { email: 'old-account@example.com' };
+  const passwordHash = await bcrypt.hash('correct horse battery', 4);
+  if (useMongo) {
+    // Straight into the collection, so the model's defaults cannot fill the missing fields in
+    const { insertedId } = await User.collection.insertOne({ name: 'Old Account', email: legacy.email, password: passwordHash, role: 'user', createdAt: new Date('2025-01-01T00:00:00.000Z') });
+    legacy.id = String(insertedId);
+    const raw = await User.collection.findOne({ _id: insertedId });
+    assert.ok(!('emailVerified' in raw) && !('tokenVersion' in raw), 'the stored record really lacks the new fields');
+  } else {
+    const file = path.join(dataDir, 'users.json');
+    await sleep(200); // let anything still being written finish
+    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    legacy.id = 'legacy-account-1';
+    data.users.push({ id: legacy.id, name: 'Old Account', email: legacy.email, passwordHash, role: 'user', createdAt: '2025-01-01T00:00:00.000Z' });
+    fs.writeFileSync(file, JSON.stringify(data));
+    initUserStore({ mongoConnected: false }); // reads the file again
+  }
 
   const oldToken = jwt.sign({ id: legacy.id }, process.env.JWT_SECRET, { algorithm: 'HS256', expiresIn: '7d', jwtid: 'legacy-jti' });
   const signedIn = await me(oldToken);

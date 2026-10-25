@@ -9,6 +9,7 @@ import os from 'os';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import jwt from 'jsonwebtoken';
+import { connectTestDatabase, dropTestDatabase } from './support/mongo.js';
 
 const SECRET = 'test-secret-'.padEnd(48, 'x');
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mom-logout-test-'));
@@ -30,7 +31,7 @@ let base;
 
 before(async () => {
   if (useMongo) {
-    await mongoose.connect(process.env.TEST_MONGO_URI);
+    await connectTestDatabase('logout');
     await (await import('../models/User.js')).default.init();
     await (await import('../models/RevokedToken.js')).default.init();
     initUserStore({ mongoConnected: true });
@@ -45,8 +46,7 @@ before(async () => {
 after(async () => {
   await new Promise(resolve => server.close(resolve));
   if (useMongo) {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
+    await dropTestDatabase();
   }
   fs.rmSync(dataDir, { recursive: true, force: true });
 });

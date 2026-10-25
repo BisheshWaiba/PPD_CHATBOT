@@ -28,6 +28,11 @@ const developmentCsp = csp.join('; ');
 // Like X-Frame-Options below, framing is only refused in production
 const productionCsp = [...csp, "frame-ancestors 'none'"].join('; ');
 
+// Errors that mean "the database cannot be reached right now" (it is down, restarting, or the network
+// dropped), as opposed to a bug. They are a 503 the page can simply retry.
+const DATABASE_UNREACHABLE = /^(MongooseServerSelectionError|MongoServerSelectionError|MongoNetworkError|MongoNetworkTimeoutError|MongoNotConnectedError|MongoTopologyClosedError)$/;
+const isDatabaseUnreachable = err => DATABASE_UNREACHABLE.test(err?.name || '') || /buffering timed out/i.test(err?.message || '');
+
 // Builds the Express app. Nothing is started here, so tests can use it directly.
 export function createApp() {
   const app = express();
@@ -128,6 +133,11 @@ export function createApp() {
     if (err.name === 'ValidationError') {
       const message = Object.values(err.errors || {})[0]?.message || 'Invalid data';
       return res.status(400).json({ success: false, message });
+    }
+    if (isDatabaseUnreachable(err)) {
+      console.error(`Database unavailable: ${err.message}`);
+      res.set('Retry-After', '5');
+      return res.status(503).json({ success: false, message: 'The service is temporarily unavailable. Please try again in a moment.' });
     }
     console.error(err.stack || err);
     res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });

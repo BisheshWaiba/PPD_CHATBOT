@@ -16,7 +16,7 @@ const store = initUserStore({ mongoConnected });
 if (!store) {
   console.error('=================================================================');
   console.error('No user database is available. Sign in and registration are disabled.');
-  console.error('Fix MONGO_URI (see MongoDB-Setup-Guide.md) and restart.');
+  console.error('Fix the problem reported above (MONGO_URI: see MongoDB-Setup-Guide.md) and restart.');
   console.error('=================================================================');
 } else if (store.kind === 'file') {
   console.warn('=================================================================');

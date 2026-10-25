@@ -247,9 +247,32 @@ npm test
 ```
 
 Runs the whole suite (authentication, chat, saved history, the AI conversation, security and
-design checks) against the local user store. To run the same tests against a real MongoDB, set
-`TEST_MONGO_URI` (use a throw-away database, the tests drop it). No Anthropic account is needed:
-the AI tests use a fake of its API.
+design checks) against the local user store. No Anthropic account is needed: the AI tests use a
+fake of its API.
+
+### Testing against MongoDB
+
+Set `TEST_MONGO_URI` to any MongoDB (a local one, or a free Atlas cluster) and the same suite also
+runs the account, sign-out, history, password-reset and start-up tests against it:
+
+```bash
+TEST_MONGO_URI="mongodb://127.0.0.1:27017" npm test
+```
+
+Every test file creates and deletes **its own** databases, named `sutkeri_test_<file>`. Nothing
+else on the server is touched, not even the database named in the URI, so it is safe to point
+at a cluster that holds other data. The GitHub workflow runs the suite this way too, against a
+MongoDB 7 container, on every push.
+
+### What the app checks when it starts up on MongoDB
+
+The app depends on its database indexes (one account per email, single-use link and sign-out
+entries, entries that expire by themselves). Start-up waits for them to be built. If one cannot
+be (for example the `users` collection already holds two accounts with the same email), it says
+so and **refuses to use that database**: in production sign-in stays disabled until it is fixed,
+and in development the local user file is used. While MongoDB is unreachable, pages still load,
+signed-in requests answer 503 (so nobody is signed out) and sign-in answers 503 "temporarily
+unavailable"; when it returns, everything works again without a restart.
 
 ### Automatic checks on GitHub
 

@@ -45,6 +45,36 @@ jobs:
       # The spec reporter prints one readable line per test in the log
       - run: npm test -- --test-reporter=spec
 
+  mongodb:
+    name: Tests on MongoDB
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A real MongoDB for the tests that can use one. The tests create and drop their own
+    # sutkeri_test_* databases, so nothing else is needed.
+    services:
+      mongo:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test -- --test-reporter=spec
+        env:
+          TEST_MONGO_URI: mongodb://127.0.0.1:27017
+
   audit:
     name: Dependency vulnerabilities
     runs-on: ubuntu-latest

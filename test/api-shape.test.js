@@ -16,7 +16,7 @@ process.env.NODE_ENV = 'test';
 delete process.env.CORS_ORIGIN;
 
 const { createApp } = await import('../app.js');
-const { initUserStore } = await import('../util/userStore.js');
+const { initUserStore, getUserStore } = await import('../util/userStore.js');
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -169,6 +169,39 @@ test('every kind of API failure has the same { success, message } shape', async 
   ];
   for (const [label, request, status] of cases) {
     await assertErrorShape(await request, status, label);
+  }
+});
+
+// --- Database outages ----------------------------------------------------------------------
+
+test('when the database cannot be reached, answers are a retryable 503 in the common shape, not a 500', async () => {
+  const store = getUserStore();
+  const original = store.authenticate;
+  const quiet = console.error;
+  console.error = () => {};
+  try {
+    for (const [name, message] of [
+      ['MongooseServerSelectionError', 'connect ECONNREFUSED 127.0.0.1:27017'],
+      ['MongoNetworkError', 'connection 3 to the server closed'],
+      ['MongoNotConnectedError', 'Client must be connected before running operations'],
+      ['MongooseError', 'Operation `users.findOne()` buffering timed out after 10000ms']
+    ]) {
+      store.authenticate = async () => { throw Object.assign(new Error(message), { name }); };
+      const res = await send('/api/v1/auth/login', { method: 'POST', body: { email: 'someone@example.com', password: 'a-long-password' } });
+      const body = await assertErrorShape(res, 503, name);
+      assert.match(body.message, /temporarily unavailable/, name);
+      assert.equal(res.headers.get('retry-after'), '5', name);
+      assert.ok(!body.message.includes(message), 'the technical reason stays in the log');
+    }
+
+    // Anything else is a bug, and stays a 500
+    store.authenticate = async () => { throw new Error('a genuine bug'); };
+    const bug = await send('/api/v1/auth/login', { method: 'POST', body: { email: 'someone@example.com', password: 'a-long-password' } });
+    const body = await assertErrorShape(bug, 500, 'a bug');
+    assert.match(body.message, /Something went wrong/);
+  } finally {
+    store.authenticate = original;
+    console.error = quiet;
   }
 });
 

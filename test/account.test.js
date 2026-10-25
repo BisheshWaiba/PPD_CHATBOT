@@ -8,6 +8,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { connectTestDatabase, dropTestDatabase } from './support/mongo.js';
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mom-account-test-'));
 process.env.JWT_SECRET = 'test-secret-'.padEnd(48, 'x');
@@ -34,7 +35,7 @@ let base;
 
 before(async () => {
   if (useMongo) {
-    await mongoose.connect(process.env.TEST_MONGO_URI);
+    await connectTestDatabase('account');
     await (await import('../models/User.js')).default.init();
     await (await import('../models/Conversation.js')).default.init();
     initUserStore({ mongoConnected: true });
@@ -49,8 +50,7 @@ before(async () => {
 after(async () => {
   await new Promise(resolve => server.close(resolve));
   if (useMongo) {
-    await mongoose.connection.dropDatabase();
-    await mongoose.disconnect();
+    await dropTestDatabase();
   }
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
