@@ -19,6 +19,7 @@ import { fileURLToPath } from 'url';
 import connectDB from '../config/db.js';
 import { verifyMailServer } from '../util/mailer.js';
 import { runProductionChecks, countByLevel } from '../util/productionCheck.js';
+import { ENTRIES, isSignedOff } from '../public/js/knowledge.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -50,6 +51,7 @@ async function main() {
   const deps = {
     nodeVersion: process.versions.node,
     skipNetwork,
+    knowledgeEntries: ENTRIES.map(entry => ({ id: entry.id, signed: isSignedOff(entry) })),
     readPublicPage: file => {
       try { return fs.readFileSync(path.join(root, 'public', file), 'utf8'); } catch { return null; }
     },

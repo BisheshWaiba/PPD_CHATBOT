@@ -6,6 +6,7 @@ import {
     wellnessAndHelplines, classifyMessage, replyFor, numberedOptions, wantsAssistant,
     PPD_INFO, PPD_TOPICS_PROMPT, PREGNANCY_ENCOURAGEMENT, SYMPTOM_MENU, SYMPTOM_AREAS
 } from './chat-logic.js';
+import { answerFor } from './knowledge.js';
 import { createRecorder } from './history-recorder.js';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -200,8 +201,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Keep a copy in the person's chat history. The typing dots and the "something went
         // wrong" notice are not part of the conversation.
         if (!isLoading && !extras.isError) {
-            recorder.record(isUser ? 'user' : 'bot', content);
-            transcript.push({ role: isUser ? 'user' : 'bot', text: content });
+            const saved = extras.recordAs ?? content;
+            recorder.record(isUser ? 'user' : 'bot', saved);
+            transcript.push({ role: isUser ? 'user' : 'bot', text: saved });
         }
 
         return messageDiv;
@@ -401,11 +403,38 @@ document.addEventListener('DOMContentLoaded', function() {
         return "I'm not sure which area you'd like to check. Please select a number (1-5).\n\n" + SYMPTOM_MENU;
     }
 
-    // Open conversation. The assistant only answers what it has reviewed answers for;
-    // anything else gets a polite "I can't help with that" and the menu.
+    // A question about postpartum health that /js/knowledge.js has a sourced answer for, or null.
+    // Messages with a safety reply or their own flow (urgent symptoms, medicines, the menu) never get one.
+    // knowledgeShown remembers the answer that is on its way to the screen, so that what is saved
+    // to the history is its plain text and not the link markup.
+    let knowledgeShown = null;
+
+    function knowledgeFor(message) {
+        return answerFor(message, classifyMessage(message));
+    }
+
+    // A question asked in the middle of the guided steps (age, birth date, the topics): answer it,
+    // then ask the step's own question again. Null when there is no sourced answer, so the step
+    // carries on as it did.
+    function answerAside(message, ask) {
+        const known = knowledgeFor(message);
+        if (!known) return null;
+        knowledgeShown = { ...known, plain: known.plain + '\n\n' + ask };
+        return known.html + '\n\n' + ask;
+    }
+
+    // Open conversation. A health question with a sourced answer gets it. The assistant otherwise
+    // only answers what it has reviewed answers for; anything else gets a polite "I can't help
+    // with that" and the menu.
     function handleFreeText(message) {
         const language = replyLanguage(message);
         const kind = classifyMessage(message);
+
+        const known = knowledgeFor(message);
+        if (known) {
+            knowledgeShown = known;
+            return known.html;
+        }
 
         switch (kind) {
             case 'yes':
@@ -459,12 +488,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
             case 'AWAITING_AGE':
             case 'AGE_VERIFICATION_FAILED':
+                if (parseAge(message).status === 'invalid') return answerAside(message, AGE_PROMPT) || handleAge(message);
                 return handleAge(message);
 
             case 'AWAITING_CHILD_BIRTHDATE':
+                if (parseBirthInput(message).kind === 'invalid') return answerAside(message, BIRTH_PROMPT) || handleBirthDate(message);
                 return handleBirthDate(message);
 
             case 'BIRTH_TIMING_RESPONSE':
+                if (!isYes(message) && !isNo(message)) {
+                    const aside = answerAside(message, START_PROMPT);
+                    if (aside) return aside;
+                }
                 if (isYes(message)) {
                     setState('EPDS_LANGUAGE_SELECTION');
                     return EPDS_LANGUAGE_PROMPT;
@@ -488,9 +523,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 return handleEpdsAnswer(message);
 
             case 'IN_PREGNANCY_INFO':
+                if (!/^(menu|exit|back|[1-5][.)]?)$/i.test(message)) {
+                    const aside = answerAside(message, PPD_TOPICS_PROMPT);
+                    if (aside) return aside;
+                }
                 return handleInfoTopics(message);
 
             case 'SYMPTOMS_QUESTIONNAIRE':
+                if (!/^(exit|back|menu|\d+[.)]?)$/i.test(message)) {
+                    const aside = answerAside(message, SYMPTOM_MENU);
+                    if (aside) return aside;
+                }
                 return handleSymptoms(message);
 
             default: // USER_LED
@@ -526,6 +569,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function shouldAskAssistant(message) {
         if (!assistantOn || Date.now() < assistantPausedUntil) return false;
         if (detectCrisis(message)) return false;
+        // A health question with a sourced answer is answered from the sources, never from the AI
+        if (knowledgeFor(message)) return false;
         const kind = classifyMessage(message);
         if (conversationState === 'USER_LED') return wantsAssistant(kind, { afterAssistant: lastReplyFromAssistant });
         if (GUIDED_STATES.includes(conversationState)) {
@@ -565,6 +610,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isProcessing = true;
         const loadingMessage = addMessage('', false, true);
         try {
+            knowledgeShown = null;
             let response = shouldAskAssistant(userMessage) ? await askAssistant() : null;
             const fromAssistant = response !== null;
             if (!fromAssistant) {
@@ -575,7 +621,7 @@ document.addEventListener('DOMContentLoaded', function() {
             lastReplyFromAssistant = fromAssistant;
             loadingMessage.remove();
             // The AI's words are shown as plain text only
-            if (response) addMessage(response, false, false, fromAssistant ? { plain: true } : { actions: repliesFor(response) });
+            if (response) addMessage(response, false, false, fromAssistant ? { plain: true } : { actions: repliesFor(response), recordAs: knowledgeShown ? knowledgeShown.plain : undefined });
         } catch (error) {
             console.error('Chat error:', error);
             loadingMessage.remove();

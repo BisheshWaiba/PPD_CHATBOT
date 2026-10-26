@@ -538,17 +538,29 @@ const URGENT_PHYSICAL = [
   /\bclots?\b.{0,30}\b(big|large|size of|bigger|golf|egg|fist|lemon)\b|\b(big|large|golf|egg|fist|lemon)\b.{0,20}\bclots?\b/
 ];
 
+// A baby who may be in danger right now. These get their own fixed reply ahead of everything
+// else, even in a long message: a baby that is not breathing is not a question about information.
+// Deliberately narrow: only the clearest emergencies. Other danger signs (will not feed, fast
+// breathing, yellow skin) get the sourced list of newborn danger signs from /js/knowledge.js.
+const URGENT_BABY = [
+  /\b(baby|newborn|infant|child)\b.{0,40}\b(not breathing|stopped breathing|isn'?t breathing|not able to breathe|struggling to breathe|gasping|turning blue|turned blue|going blue|is blue|blue lips|limp|floppy|unresponsive|not responding|won'?t wake|can'?t wake|not waking|seizures?|convuls\w*)\b/,
+  /\b(not breathing|stopped breathing|turning blue|turned blue|going blue|unresponsive|floppy|limp)\b.{0,30}\b(baby|newborn|infant)\b/,
+  /\b(baby|newborn|infant)(\W+s)?\W+(lips|face|skin|body)\W+(are|is|look|looks|turned|turning|going)\W+(blue|grey|gray)\b/
+];
+
 /**
  * Decides what a free-text message is about. The assistant only answers topics it has
  * written, reviewed answers for. Everything else gets a polite "I can't help with that".
  *
  * Returns one of: empty, greeting, thanks, bye, yes, no, menu, menu_1..menu_5, epds,
  * symptoms, helpline, report, info_what, info_causes, info_symptoms, info_prevention,
- * info_selfcare, urgent_medical, medication, feelings, related_other, offtopic.
+ * info_selfcare, urgent_baby, urgent_medical, medication, feelings, related_other, offtopic.
  */
 export function classifyMessage(text) {
   const t = normalizeText(text).toLowerCase();
   if (!t) return 'empty';
+
+  if (URGENT_BABY.some((re) => re.test(t))) return 'urgent_baby';
 
   if (YES.test(t)) return 'yes';
   if (NO.test(t)) return 'no';
@@ -629,6 +641,8 @@ export function replyFor(kind, language = 'english') {
       return 'After you finish the 10 questions, I will show your score and a link to a printable results page you can bring to your healthcare provider.\n\nType 1 to take the check-in now.';
     case 'feelings':
       return "I'm sorry you're feeling this way, and thank you for telling me. Many new mothers go through this, and it deserves attention. I can't tell what is causing it from a message, but a short screening can show how you've been feeling over the past week.\n\nWould you like to take it now? Type 'yes' to begin, or 'menu' to see other options.";
+    case 'urgent_baby':
+      return "This sounds like an emergency for your baby. Please take your baby to the nearest hospital emergency room right now, or ask someone near you to help you get there. Please do not wait to see if it passes.";
     case 'urgent_medical':
       return "Some physical symptoms after birth can be serious, and I can't assess them. Please contact your healthcare provider or go to the nearest hospital as soon as possible.";
     case 'medication':

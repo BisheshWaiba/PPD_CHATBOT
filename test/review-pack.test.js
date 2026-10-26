@@ -19,6 +19,8 @@ const { SCENARIOS, CATEGORIES, routeScenario, checkReply, summarize, runScenario
 const { gatherFacts, buildReviewPage, extractSentences, escapeHtml } = await import('../util/reviewPack.js');
 const { buildSystemPrompt, estimateCost, AssistantUnavailableError } = await import('../util/assistant.js');
 const { crisisMessage, replyFor, EPDS_QUESTIONS, HELPLINES } = await import('../public/js/chat-logic.js');
+const { ENTRIES, SOURCES, NOT_WRITTEN, formatAnswer } = await import('../public/js/knowledge.js');
+const { EVAL } = await import('../util/knowledgeEval.js');
 
 const byId = id => SCENARIOS.find(scenario => scenario.id === id);
 const GOOD = 'That sounds really hard, and thank you for telling me. How have you been sleeping?';
@@ -32,7 +34,7 @@ test('the scenarios are well formed', () => {
   for (const scenario of SCENARIOS) {
     assert.ok(CATEGORIES[scenario.category], `${scenario.id}: a known category`);
     assert.ok(scenario.title && scenario.why, `${scenario.id}: a title and a reason`);
-    assert.ok(['ai', 'safety', 'fixed'].includes(scenario.layer), scenario.id);
+    assert.ok(['ai', 'safety', 'fixed', 'knowledge'].includes(scenario.layer), scenario.id);
     assert.ok(['english', 'devanagari', 'roman'].includes(scenario.language), scenario.id);
     assert.equal(scenario.messages[0].role, 'user', `${scenario.id}: starts with her`);
     assert.equal(scenario.messages[scenario.messages.length - 1].role, 'user', `${scenario.id}: ends with her`);
@@ -41,7 +43,7 @@ test('the scenarios are well formed', () => {
     }
   }
   const layers = new Set(SCENARIOS.map(scenario => scenario.layer));
-  assert.deepEqual([...layers].sort(), ['ai', 'fixed', 'safety']);
+  assert.deepEqual([...layers].sort(), ['ai', 'fixed', 'knowledge', 'safety']);
   for (const language of ['english', 'devanagari', 'roman']) assert.ok(SCENARIOS.some(scenario => scenario.language === language), language);
 });
 
@@ -349,6 +351,35 @@ test('the pack is one self-contained page: nothing is loaded from anywhere, so i
   assert.ok(!/url\(/.test(html), 'no images in the style');
   assert.ok(html.includes('<meta name="robots" content="noindex">'), 'not for search engines');
   assert.ok(html.includes('@media print'), 'made to be printed');
+});
+
+test('the pack shows every sourced answer as it is, where it comes from, and what the reviewer is asked', () => {
+  const html = page();
+  assert.ok(/8\. Sourced answers to health questions/.test(html) && html.includes('href="#knowledge"'), 'a section, and a link to it');
+  assert.equal(facts.knowledge.entries.length, ENTRIES.length);
+  for (const entry of ENTRIES) {
+    assert.ok(html.includes(`id="k-${entry.id}"`), entry.id);
+    assert.ok(html.includes(escapeHtml(entry.title)), `title of ${entry.id}`);
+    assert.ok(html.includes(escapeHtml(formatAnswer(entry).plain)), `the words of ${entry.id}, exactly as she sees them`);
+    for (const id of entry.sources) {
+      assert.ok(html.includes(escapeHtml(SOURCES[id].url)), `the address of ${id}`);
+      assert.ok(html.includes(escapeHtml(SOURCES[id].dated)), `the date of ${id}`);
+    }
+    if (entry.clinical) assert.ok(html.includes(escapeHtml(entry.clinical)), `the question for the reviewer on ${entry.id}`);
+    if (entry.adaptation) assert.ok(html.includes(escapeHtml(entry.adaptation)), `what was changed in ${entry.id}`);
+  }
+  assert.ok(/Draft: not yet reviewed/.test(html) && !/>Signed</.test(html), 'unsigned answers say they are drafts');
+  assert.ok(/Every answer below is a draft/.test(html), 'and the page says why that matters');
+  for (const topic of NOT_WRITTEN) assert.ok(html.includes(escapeHtml(topic)), topic);
+  for (const [question] of EVAL) if (question) assert.ok(html.includes(escapeHtml(question)), `the question "${question}" that was tried`);
+  assert.ok(/The full text of the WHO guideline[\s\S]*?could not be read/.test(html), 'what could not be checked is said');
+});
+
+test('the pack marks a signed answer as signed, and a question that goes wrong as not what was expected', () => {
+  const signedFacts = { ...facts, knowledge: { ...facts.knowledge, entries: facts.knowledge.entries.map((entry, index) => (index === 0 ? { ...entry, signed: true } : entry)), asked: [{ question: 'What is postnatal depression?', expected: 'baby-blues', got: 'what-is-ppd', crisis: false }] } };
+  const html = buildReviewPage({ facts: signedFacts, scenarios: SCENARIOS, meta: { generatedAt: 'today', model: 'm', commit: '' } });
+  assert.equal((html.match(/>Signed</g) || []).length, 1);
+  assert.ok(/not what we expected/.test(html));
 });
 
 test('both reviewers are given their questions', () => {

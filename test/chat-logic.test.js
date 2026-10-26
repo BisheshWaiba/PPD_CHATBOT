@@ -262,6 +262,33 @@ test('on-topic questions are recognised', () => {
   }
 });
 
+test('a baby who may be in danger right now gets the emergency reply, ahead of everything else', () => {
+  for (const text of [
+    'my baby is not breathing', 'My baby stopped breathing!', 'the baby has turned blue', 'my newborn is limp and will not wake',
+    'the baby is unresponsive', 'my baby had a seizure', 'my baby is having convulsions', "the baby's lips are blue",
+    'baby is gasping, is blue', 'he is not breathing, my baby', "my baby won't wake up", 'hello my baby stopped breathing',
+    'hi baby not breathing', 'why is my newborn floppy and limp'
+  ]) {
+    assert.equal(classifyMessage(text), 'urgent_baby', text);
+  }
+  const reply = replyFor('urgent_baby');
+  assert.match(reply, /emergency/);
+  assert.match(reply, /nearest hospital emergency room right now/);
+  assert.doesNotMatch(reply, /\b(wait and see|probably fine|normal)\b/);
+  assert.equal(wantsAssistant('urgent_baby'), false, 'never left to the AI');
+  assert.equal(wantsAssistant('urgent_baby', { afterAssistant: true }), false);
+});
+
+test('the baby emergency rule is narrow: the baby blues, a baby that sleeps, and a mother who is blue are not emergencies', () => {
+  for (const text of [
+    'what are the baby blues', 'I feel blue since the baby came', 'my baby is breathing fast', "I keep checking if the baby is still breathing",
+    "my baby is very sleepy and won't feed", 'my baby fits in the cot', 'how do I stop my baby crying', 'what are baby danger signs',
+    'my baby is hot', 'newborn jaundice', 'my baby has yellow skin'
+  ]) {
+    assert.notEqual(classifyMessage(text), 'urgent_baby', text);
+  }
+});
+
 test('questions outside postpartum care are classified as off-topic and never answered', () => {
   for (const text of [
     'what is the weather', 'who won the cricket world cup', 'tell me a joke', 'write a python script',

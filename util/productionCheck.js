@@ -10,7 +10,8 @@ import { PRICES } from './assistant.js';
 //   info  not something a program can check, but worth reading
 //
 // Secrets are never put in the output. deps carries what has to be done for real (a connection to
-// the database and to the mail server), so the checks themselves can be tested without either.
+// the database and to the mail server, and the list of sourced health answers with whether each is
+// signed), so the checks themselves can be tested without any of them.
 
 const result = (level, title, detail = '') => ({ level, title, detail });
 const PLACEHOLDER = /\[\[([^\]]*)\]\]/g;
@@ -155,6 +156,20 @@ function checkPolicies(deps, out) {
     : result('ok', 'The privacy policy and terms have no unfilled markers'));
 }
 
+// The sourced answers to health questions (public/js/knowledge.js) are drafts until a clinician has
+// read each against its source and signed it. A mother who asks a health question is shown them, so
+// the launch check refuses to pass while any is unsigned. deps.knowledgeEntries: [{ id, signed }].
+function checkKnowledge(deps, out) {
+  const entries = deps.knowledgeEntries;
+  if (!Array.isArray(entries)) return;
+  const unsigned = entries.filter(entry => !entry.signed);
+  out.push(unsigned.length
+    ? result('fail', `${unsigned.length} of ${entries.length} sourced health answers have not been reviewed by a clinician`,
+      `They are drafts, written from NHS and WHO pages by people who are not clinicians, and any mother who asks a health question is shown them. Have a clinician read each against its source (npm run review:pack makes the pack, section 8 is for this), then in public/js/knowledge.js set its status to "reviewed" and fill in reviewedBy and reviewedOn. Not yet signed: ${unsigned.map(entry => entry.id).join(', ')}.`)
+    : result('ok', `All ${entries.length} sourced health answers have been signed by a clinician`));
+  out.push(result('info', 'The sourced health answers are in English only', 'A mother who writes in Nepali is shown the English answer. A Nepali speaker has to write and check the Nepali before it can be offered.'));
+}
+
 function checkNotes(env, out) {
   const days = Number(env.CHAT_HISTORY_DAYS);
   out.push(days > 0
@@ -176,6 +191,7 @@ export async function runProductionChecks(env, deps) {
   checkOther(env, out);
   checkAssistant(env, out);
   checkPolicies(deps, out);
+  checkKnowledge(deps, out);
   checkNotes(env, out);
   return out;
 }

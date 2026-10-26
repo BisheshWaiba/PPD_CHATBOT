@@ -18,7 +18,7 @@ Some of these are things the app now does for you. The rest only you can do. Run
 | 3 | **Email that works** and lands in the inbox, not in spam (section 4). | You |
 | 4 | **A spend limit in the Anthropic console**, and `ASSISTANT_DAILY_BUDGET_USD` (section 5). | You, and the app |
 | 5 | A **privacy policy and terms** that are finished and have been read by someone qualified (section 8). | You, with a lawyer |
-| 6 | The **clinical review** of the AI and the fixed texts, and the helplines checked (`npm run review:pack`). | You, with a clinician and a Nepali speaker |
+| 6 | The **clinical review** of the AI, the fixed texts and the **sourced health answers**, and the helplines checked (`npm run review:pack`). The launch check fails until a clinician has signed every sourced answer (see "The sourced health answers" below). | You, with a clinician and a Nepali speaker |
 | 7 | **Remove the "Stay updated" box** on the home page, or connect it. Today the Subscribe button does nothing. | You |
 | 8 | A **decision about people under 18** (the chat welcomes young mothers today). | You |
 | 9 | **Restore a backup once**, to see that it works. | You |
@@ -76,6 +76,30 @@ cannot provide them (for example one that already holds two accounts with the sa
    `npm run review:pack -- --with-replies`, and give the pack to your reviewers.
 5. The model is `claude-opus-5-5` unless you set `ASSISTANT_MODEL`. A smaller model is much cheaper.
    Decide that with your reviewers, not on price alone.
+
+### The sourced health answers
+
+A mother can ask a health question (what postnatal depression is, the baby blues, newborn danger
+signs, breastfeeding, what happens at the checkups). If the question matches one of the written
+answers in `public/js/knowledge.js`, she is shown that answer with links to where it comes from.
+These answers work with or without an AI key, and the AI is never asked about a question that has
+one.
+
+They were written from NHS and WHO pages, one study from Kathmandu, and WHO's 2013 postnatal
+recommendations, by people who are not clinicians. **Every answer is a draft until a clinician has
+read it against its source and signed it.** `npm run check:production` fails while any is unsigned,
+and says which. To get them signed:
+
+1. `npm run review:pack` and give `review/review-pack.html` to a clinician. Section 8 has every
+   answer, its sources, what was changed from the source, and a question for the reviewer where
+   a decision is needed (for example which check-in cut-off to use for Nepal).
+2. For each answer the clinician accepts, set `status: 'reviewed'`, `reviewedBy` and `reviewedOn` on
+   that entry in `public/js/knowledge.js`. A status without a name and a date does not count.
+3. Where they ask for a change, edit the entry and have it read again. The tests pin every figure
+   in every answer (`test/knowledge.test.js`), so a changed number has to be changed there too, on
+   purpose.
+
+The answers are in English only. A Nepali speaker has to write and check any Nepali.
 
 ## 6. The host, the domain and HTTPS
 

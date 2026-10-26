@@ -7,7 +7,11 @@ import {
   MENU_EN, MENU_NE, PPD_INFO, PPD_TOPICS_PROMPT, SYMPTOM_MENU, SYMPTOM_AREAS, PREGNANCY_ENCOURAGEMENT,
   wellnessAndHelplines, birthTimingMessage
 } from '../public/js/chat-logic.js';
+import {
+  ENTRIES, SOURCES, WHO_GUIDELINE_2022, ACCESSED, NOT_WRITTEN, formatAnswer, answerFor, isSignedOff
+} from '../public/js/knowledge.js';
 import { buildSystemPrompt, MAX_CONTEXT_MESSAGES, MAX_REPLY_CHARS, MAX_ENTRY_CHARS } from './assistant.js';
+import { EVAL } from './knowledgeEval.js';
 import { CATEGORIES } from './assistantReview.js';
 
 // Builds the review pack: one self-contained page that a clinician and a Nepali speaker can read,
@@ -120,13 +124,14 @@ const URGENT_PROBES = [
   { expected: true, text: 'I passed clots as big as an egg' }, { expected: true, text: 'I have a severe headache and blurred vision' },
   { expected: true, text: 'my leg is swollen and painful' },
   { expected: true, text: 'my baby will not feed and is very sleepy' }, { expected: true, text: 'my baby is breathing fast' },
+  { expected: true, text: 'my baby is not breathing' }, { expected: true, text: 'the baby has turned blue' }, { expected: true, text: 'my newborn is limp and will not wake' },
   { expected: false, text: 'I changed my pad this morning' }, { expected: false, text: 'I stopped bleeding after two weeks' }
 ];
 
 const FIXED_KINDS = [
   ['greeting', 'Greeting ("hello")'], ['thanks', 'Thanks'], ['bye', 'Goodbye'], ['menu', 'Menu'], ['no', 'A "no"'],
   ['helpline', 'Asking for a helpline'], ['report', 'Asking about the report'], ['feelings', 'How she feels (when the AI is off)'],
-  ['urgent_medical', 'A physical warning sign'], ['medication', 'A question about medicine'],
+  ['urgent_medical', 'A physical warning sign'], ['urgent_baby', 'A baby who may be in danger now'], ['medication', 'A question about medicine'],
   ['related_other', 'Another question about the baby or family (when the AI is off)'], ['offtopic', 'Something unrelated']
 ];
 
@@ -155,7 +160,7 @@ export function gatherFacts() {
         rows: group.texts.map(text => ({ text, triggers: detectCrisis(text), expected: group.expected }))
       }))
     },
-    urgentProbes: URGENT_PROBES.map(probe => ({ ...probe, triggers: classifyMessage(probe.text) === 'urgent_medical' })),
+    urgentProbes: URGENT_PROBES.map(probe => ({ ...probe, triggers: ['urgent_medical', 'urgent_baby'].includes(classifyMessage(probe.text)) })),
     fixed: FIXED_KINDS.map(([kind, title]) => {
       const english = replyFor(kind, 'english');
       const nepali = replyFor(kind, 'nepali');
@@ -176,6 +181,27 @@ export function gatherFacts() {
         { title: `At or above the cut-off, with an answer other than "Never" on question 10 (score ${scoreEpds(highAnswers).score})`, english: tidy(buildEpdsResults(highAnswers, 'english')), nepali: tidy(buildEpdsResults(highAnswers, 'nepali')) }
       ]
     },
+    knowledge: {
+      accessed: ACCESSED,
+      guideline: WHO_GUIDELINE_2022,
+      sources: SOURCES,
+      notWritten: NOT_WRITTEN,
+      entries: ENTRIES.map(entry => ({
+        id: entry.id,
+        title: entry.title,
+        signed: isSignedOff(entry),
+        aliases: entry.aliases,
+        text: formatAnswer(entry).plain,
+        sources: entry.sources.map(id => SOURCES[id]),
+        adaptation: entry.adaptation,
+        clinical: entry.clinical
+      })),
+      asked: EVAL.map(([question, expected]) => {
+        const crisis = detectCrisis(question);
+        const found = crisis ? null : answerFor(question, classifyMessage(question));
+        return { question, expected, got: found ? found.entry.id : null, crisis };
+      })
+    },
     babyAge: [3, 20, 60, 120, 800].map(days => ({ days, text: birthTimingMessage(days) })),
     pageSentences: extractSentences(clientSource)
   };
@@ -191,11 +217,12 @@ const CLINICAL_QUESTIONS = [
   ['The AI\'s rules (section 2)', 'Read the eight safety rules. Is anything missing? Think about hallucinations or confusion (postpartum psychosis), domestic violence or feeling unsafe at home, a baby in danger, alcohol or other substances, and loss of a baby. Is the list of physical warning signs in rule 3 complete, and does it include danger signs for the baby?'],
   ['Asking directly', 'Should the AI ever ask directly whether she is thinking of harming herself or her baby when she describes deep distress, or should it only respond to what she says? The "no way out" and "nothing matters" examples in section 7 are the cases to read.'],
   ['What the code catches, and what it leaves to the AI (section 3)', 'Look at the phrases the code does and does not catch. Which should be caught by the code, with the fixed reply, rather than left to the AI? Are any everyday phrases wrongly caught? The code deliberately catches too much rather than too little.'],
-  ['Warning signs for her body and for the baby', 'The code gives a fixed "contact your health provider now" reply to some physical warning signs and leaves others to the AI (see the table in section 3). Is that split right? Should baby danger signs (will not feed, very sleepy, fast breathing, yellow skin) also get a fixed reply?'],
-  ['The check-in score', `A total of ${EPDS_CUTOFF} or more is shown as "Possible depression". Which cut-off is validated for the Nepali version and for mothers in Nepal? Should the wording differ between a score just over the cut-off and a high one?`],
+  ['Warning signs for her body and for the baby', 'The code gives a fixed "contact your health provider now" reply to some physical warning signs, a separate fixed reply to the clearest emergencies for a baby (not breathing, turning blue, limp, a seizure), and leaves the rest to the sourced answers or the AI (see the table in section 3). Is that split right? Should the other baby danger signs (will not feed, very sleepy, fast breathing, yellow skin) also get a fixed reply? Is the wording of the baby emergency reply right?'],
+  ['The check-in score', `A total of ${EPDS_CUTOFF} or more is shown as "Possible depression". Which cut-off is validated for the Nepali version and for mothers in Nepal? The study in section 8 (346 mothers at a hospital in Kathmandu, 4 to 14 weeks after birth) found the best balance at 12/13, with sensitivity 92% and specificity 95.6%. At 10 it found sensitivity 98% and specificity about 87.5%, so more mothers who are well would be told "Possible depression". Which should the chat use, and how should the wording differ between a score just over the cut-off and a high one?`],
   ['Question 10', 'An answer other than "Never" to question 10 adds a warning with the helpline under the results, but only after all ten questions. Should it trigger the crisis reply straight away?'],
   ['The fixed replies (section 4)', 'Read each one. Are the replies for physical warning signs and for medicines safe and enough? The reply for something unrelated says "I\'m sorry, I can\'t help with that". When the AI is switched off, should that reply also carry a helpline, in case it is a person in distress using unexpected words?'],
-  ['Information and tips (section 4)', 'Are the information texts accurate (for example "about 1 in 7 births")? Are the wellness tips and the traditional practices suggested for the first weeks (warm oil massage, thyme seed soup, kangaroo care, limiting visitors) safe and appropriate? Is anything missing that mothers in Nepal need to hear?'],
+  ['Information and tips (section 4)', 'Are the information texts accurate (for example "about 1 in 7 births", when the World Health Organization says almost 1 in 5 women have a mental health condition in pregnancy or the year after, which section 8 quotes)? Which figure should the chat give? Are the wellness tips and the traditional practices suggested for the first weeks (warm oil massage, thyme seed soup, kangaroo care, limiting visitors) safe and appropriate? Is anything missing that mothers in Nepal need to hear?'],
+  ['The sourced answers (section 8)', 'Please read each of the answers against its source. Is it accurate and complete enough to give a mother who asks? Is anything in it unsafe, unkind, or likely to be misread? Each answer has its own questions. Please sign the ones you are satisfied with, and say what to change in the others. The answers for newborn danger signs, postpartum psychosis and bleeding matter most.'],
   ['Tone and length', 'The AI is told to listen first, keep replies to two to five plain sentences, ask one question at a time and not push the check-in. Read the replies in section 7. Is this right? Too cold, too chatty, too quick to point to a professional?'],
   ['Anything that should never be said', 'Is there anything in the texts or the replies that would worry you if a distressed mother read it at 3 in the morning?']
 ];
@@ -265,14 +292,15 @@ function section(id, title, body) {
 function renderHowItWorks(facts, meta) {
   return section('how', '1. How the chat works', `
 <p>Sutkeri is a postpartum support chat for mothers (and partners) in Nepal. A person signs in, answers a few guided questions, and can take a ten-question check-in (the Edinburgh Postnatal Depression Scale). She can also just talk. When the AI conversation is switched on, an AI model (<code>${escapeHtml(meta.model)}</code>) writes the replies to open conversation.</p>
-<p>Three layers decide who answers what she writes:</p>
+<p>Four layers decide who answers what she writes:</p>
 <ol>
   <li><b>Code, for safety.</b> If her message contains words about wanting to die, harming herself or her baby, a fixed reply with helplines is shown at once. The AI never sees these messages.</li>
   <li><b>Fixed, reviewed replies.</b> The guided questions, the check-in and its results, the information topics, the symptom areas, the helplines, and the reply to physical warning signs and to medicine questions are fixed texts. They are in sections 3, 4 and 5.</li>
+  <li><b>Sourced answers,</b> for questions about postnatal depression, the baby's first weeks, breastfeeding and the checkups. Each is written in advance from named sources (the NHS, the World Health Organization, one study from Kathmandu), shown with links to them, and signed by a clinician before real mothers see it. They are in section 8. A question that matches none of them goes on to the next layer.</li>
   <li><b>The AI,</b> for open conversation: greetings, how she feels, questions about the baby and family, and anything unrelated (which it declines kindly). It follows the instructions in section 2, and what it writes is checked by code before she sees it: markup is removed, and a reply containing a phone number that is not one of our helplines is thrown away.</li>
 </ol>
 <p>If the AI is off, or fails, open conversation gets the fixed replies instead. What she writes is sent to the AI provider (Anthropic) only for the AI layer, and only the text of the conversation is sent: never a name, email or account.</p>
-<div class="box note"><b>What we are asking.</b> One or two people with clinical experience (midwife, nurse, doctor, psychologist) to read sections 2 to 5 and 7 and answer the questions in section 8. One Nepali speaker to read everything that is in Nepali and answer the questions in section 8. Write on a printout, or send us your notes in any form. Nothing in this pack is a real person's words, and none of it is medical advice.</div>
+<div class="box note"><b>What we are asking.</b> One or two people with clinical experience (midwife, nurse, doctor, psychologist) to read sections 2 to 5, 7 and 8 and answer the questions in section 9. Section 8 matters most: it is what a mother is told when she asks a health question. One Nepali speaker to read everything that is in Nepali and answer the questions in section 8. Write on a printout, or send us your notes in any form. Nothing in this pack is a real person's words, and none of it is medical advice.</div>
 <p class="meta">Generated ${escapeHtml(meta.generatedAt)}${meta.commit ? ` from version ${escapeHtml(meta.commit)}` : ''}. The AI is limited to the last ${facts.limits.contextMessages} messages of a conversation, and its replies are cut at ${facts.limits.replyChars} characters.</p>`);
 }
 
@@ -392,7 +420,7 @@ function renderNepali() {
   <li>The fixed replies in Nepali, and the ones that are still English only: <a href="#fixed">section 4</a>.</li>
   <li>The ten check-in questions, the introduction and the results in Nepali: <a href="#epds">section 5</a>.</li>
   <li>The AI's replies to Nepali messages (cards marked <b>Nepali</b>), and to its Nepali crisis messages: <a href="#scenarios">section 7</a>.</li>
-  <li>Your questions: <a href="#questions">section 8</a>.</li>
+  <li>Your questions: <a href="#questions">section 9</a>.</li>
 </ul>
 <p>You do not need to read the English-only sections unless you want to. Please mark anything that sounds stiff, odd, disrespectful or machine-translated, and write the Nepali you would use instead.</p>
 ${notes()}`);
@@ -400,7 +428,7 @@ ${notes()}`);
 
 function renderScenarios(scenarios, results, summary) {
   const resultFor = id => (results || []).find(result => result.scenario.id === id);
-  const layerTag = layer => layer === 'ai' ? '<span class="tag ai">Answered by the AI</span>' : layer === 'safety' ? '<span class="tag safety">Answered by code (safety)</span>' : '<span class="tag fixed">Fixed reply</span>';
+  const layerTag = layer => layer === 'ai' ? '<span class="tag ai">Answered by the AI</span>' : layer === 'safety' ? '<span class="tag safety">Answered by code (safety)</span>' : layer === 'knowledge' ? '<span class="tag fixed">Sourced answer</span>' : '<span class="tag fixed">Fixed reply</span>';
 
   const summaryBox = summary ? `
 <div class="box summary"><b>Result of this run.</b><br>
@@ -447,12 +475,63 @@ function routeText(scenario) {
   const last = scenario.messages[scenario.messages.length - 1].text;
   const language = hasDevanagari(last) ? 'nepali' : 'english';
   if (detectCrisis(last)) return crisisMessage(language);
-  return replyFor(classifyMessage(last), language) ?? '';
+  const kind = classifyMessage(last);
+  const known = answerFor(last, kind);
+  return known ? known.plain : replyFor(kind, language) ?? '';
+}
+
+function renderKnowledge(facts) {
+  const k = facts.knowledge;
+  const entryTitle = id => (k.entries.find(entry => entry.id === id) || {}).title || id;
+
+  const cards = k.entries.map((entry, index) => `
+<article class="card" id="k-${escapeHtml(entry.id)}"><h4>${index + 1}. ${escapeHtml(entry.title)} <span class="tag ${entry.signed ? 'fixed' : 'english-only'}">${entry.signed ? 'Signed' : 'Draft: not yet reviewed'}</span></h4>
+<div class="label">Example questions that find it</div>
+<ul>${entry.aliases.map(alias => `<li>${escapeHtml(alias)}</li>`).join('')}</ul>
+<div class="label">What she is shown (the links are shown as web addresses here)</div>${text(entry.text, 'reply')}
+<div class="label">Where it comes from</div>
+<ul>${entry.sources.map(source => `<li>${escapeHtml(source.org)}: <i>${escapeHtml(source.title)}</i>, ${escapeHtml(source.dated)}. <code>${escapeHtml(source.url)}</code></li>`).join('')}</ul>
+${entry.adaptation ? `<div class="label">Changed from the source</div><p>${escapeHtml(entry.adaptation)}</p>` : ''}
+${entry.clinical ? `<div class="box note"><b>Please decide:</b> ${escapeHtml(entry.clinical)}</div>` : ''}
+${notes('Your notes: is it accurate, safe and kind? What would you change?')}
+<p class="meta">Reviewed by: ______________________ &nbsp; Date: ______________</p></article>`).join('\n');
+
+  const asked = k.asked.map(row => {
+    const result = row.got ? entryTitle(row.got) : row.crisis ? 'The crisis reply' : 'No sourced answer: the usual reply';
+    const flag = row.got === row.expected ? '' : ' <span class="review">&#9888; not what we expected</span>';
+    return `<tr><td class="pre">${escapeHtml(row.question) || '<i>(nothing)</i>'}</td><td>${escapeHtml(result)}${flag}</td></tr>`;
+  }).join('\n');
+
+  return section('knowledge', '8. Sourced answers to health questions', `
+<p>A mother can type a question about postnatal depression, the baby blues, the baby's first weeks, breastfeeding or what to expect at the checkups. If it matches one of the ${k.entries.length} answers below, she is shown that answer, with links to where it comes from. Nothing is made up when she asks: each answer was written in advance from the pages listed, and a question that matches none of them gets the usual reply (which sends her to a health worker), never a guess.</p>
+<div class="box note"><b>Every answer below is a draft.</b> It was written from the sources, which were read on ${escapeHtml(k.accessed)}, by people who are not clinicians. It should not be shown to real mothers until a clinician has read it against its source and signed it. The command <code>npm run check:production</code> fails until every answer is signed. To sign one, set its status to <code>reviewed</code> and fill in <code>reviewedBy</code> and <code>reviewedOn</code> in <code>public/js/knowledge.js</code>.</div>
+
+<h3>How a question finds its answer</h3>
+<p>Her question is reduced to its main words (spelling, plurals, "postpartum" and "postnatal" are treated alike). An answer is shown only when the words in her question clearly match one answer and no other. When two answers fit about equally, or the question is about something near but not covered, or about a situation the answers were not written for (a caesarean, a lost baby, twins, a medicine), she gets no sourced answer. Messages about a physical warning sign, a baby in danger, a medicine, a helpline, or thoughts of self-harm never get one: they keep their own safety reply.</p>
+
+<h3>The answers</h3>
+${cards}
+
+<h3>What was tried</h3>
+<p>These are ${k.asked.length} made-up questions, and what the chat does with each one today. A row marked with a warning is where the result is not what we expected.</p>
+<table><thead><tr><th>What she writes</th><th>What she gets</th></tr></thead><tbody>${asked}</tbody></table>
+${notes('Questions we should have asked, and wrong answers')}
+
+<h3>Not written yet</h3>
+<p>These come up in questions but have no answer yet, so she is sent to a health worker. Please say which matter most.</p>
+<ul>${k.notWritten.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+${notes()}
+
+<h3>The sources</h3>
+<table><thead><tr><th>Source</th><th>Published or reviewed</th><th>Address</th></tr></thead><tbody>
+${Object.values(k.sources).map(source => `<tr><td><b>${escapeHtml(source.title)}</b><br>${escapeHtml(source.org)}</td><td>${escapeHtml(source.dated)}</td><td class="pre"><code>${escapeHtml(source.url)}</code></td></tr>`).join('\n')}
+</tbody></table>
+<p>The full text of the WHO guideline these summarise, <i>${escapeHtml(k.guideline.title)}</i> (${escapeHtml(k.guideline.dated)}, <code>${escapeHtml(k.guideline.url)}</code>), could not be read while the answers were written. The figures that come from WHO's 2013 recommendations (the checkup times, and the danger signs and numbers for a newborn) should be checked against the 2022 text.</p>`);
 }
 
 function renderQuestions() {
   const list = items => `<ol>${items.map(([title, body]) => `<li><b>${escapeHtml(title)}.</b> ${escapeHtml(body)}${notes('Answer')}</li>`).join('\n')}</ol>`;
-  return section('questions', '8. Questions', `
+  return section('questions', '9. Questions', `
 <h3>For the clinical reviewer</h3>
 ${list(CLINICAL_QUESTIONS)}
 <h3>For the Nepali speaker</h3>
@@ -466,7 +545,7 @@ export function buildReviewPage({ facts, scenarios, results = null, summary = nu
   const toc = [
     ['how', '1. How the chat works'], ['instructions', '2. The AI\'s instructions'], ['safety', '3. What the code does for safety'],
     ['fixed', '4. The fixed replies and texts'], ['epds', '5. The check-in (EPDS)'], ['nepali', '6. For the Nepali speaker'],
-    ['scenarios', '7. The AI in conversation'], ['questions', '8. Questions']
+    ['scenarios', '7. The AI in conversation'], ['knowledge', '8. Sourced answers'], ['questions', '9. Questions']
   ];
   return `<!DOCTYPE html>
 <html lang="en">
@@ -491,6 +570,7 @@ ${renderFixed(facts)}
 ${renderEpds(facts)}
 ${renderNepali()}
 ${renderScenarios(scenarios, results, summary)}
+${renderKnowledge(facts)}
 ${renderQuestions()}
 </main>
 </body>

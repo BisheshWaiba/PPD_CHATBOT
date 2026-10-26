@@ -182,6 +182,38 @@ curl http://localhost:8004/api/v1/auth/me -H "Authorization: Bearer YOUR_TOKEN_H
 - **Old design:** screenshots of the earlier pink "MOM" design are in `docs/old-ui-screenshots/`.
   They are reference only and are not served.
 
+## Answers to health questions (sourced)
+
+A mother can type a question about postnatal depression, the baby blues, the first weeks with a
+newborn, breastfeeding or what happens at the postnatal checkups, and the chat answers it. These
+answers need no AI and no API key. Each one was written in advance from named sources (the NHS,
+the World Health Organization, a 2016 study of the Nepali Edinburgh scale in Kathmandu), is shown
+with links to them and a reminder that it is general information, and sends her to a health worker
+for anything about her own situation. Nothing is made up at the moment she asks.
+
+- **Where they are:** `public/js/knowledge.js` holds the sources, the answers and the code that
+  finds the right one. A question is matched to an answer by its main words (spelling, plurals and
+  "postpartum"/"postnatal" are treated alike); an answer is shown only when one answer clearly
+  fits. A question that is unclear, about something near but not written yet (causes, diet,
+  medicines, caesareans, a lost baby), or only a few common words, gets no answer and falls back to
+  the usual reply (or the AI, when it is on).
+- **What never gets one:** a crisis message, a physical warning sign, a baby who may be in danger
+  (not breathing, turning blue, a seizure: a separate fixed emergency reply), a medicine question,
+  the helplines, the menu, and "take the check-in". They keep their own replies.
+- **Draft until signed:** every answer is a draft until a clinician has read it against its source
+  and signed it (`status`, `reviewedBy`, `reviewedOn`). `npm run check:production` fails until
+  they all are. See `docs/DEPLOYMENT.md` ("The sourced health answers") and section 8 of the review
+  pack. The pack also lists the open questions this raised: for example, the study found the best
+  cut-off for the Nepali scale was 12/13, while the check-in treats 10 or more as "Possible
+  depression", and the older information text says "about 1 in 7 births" while WHO says almost 1
+  in 5 women have a mental health condition in pregnancy or the year after.
+- **Adding or changing one:** add an entry with its `sources`, example `aliases` and `keywords`, and
+  add questions for it to `util/knowledgeEval.js` (including a few that must *not* find it). The
+  tests check that every answer names real sources on an allowed site, that no figure changes
+  without a test being changed, that nothing belongs to another country (no UK phone numbers), that
+  there is no medicine advice and no diagnosis, and that each question in the set finds exactly the
+  answer it should and no more. Run `node --test test/knowledge.test.js`.
+
 ## AI conversation (optional)
 
 Out of the box the chat answers with fixed, reviewed replies. Add an Anthropic API key and the
@@ -201,7 +233,8 @@ To turn it off, remove the key. Nothing else changes.
 feels, questions about the baby and family, thanks, and off-topic questions (which it declines
 kindly). Everything with a reviewed answer or a safety reply stays fixed: the guided steps (age,
 birth date), the questionnaire and its scoring, the symptom check, the helplines, the printable
-report, the five information topics, urgent physical symptoms, and medicines. A short "yes", "no"
+report, the five information topics, the sourced health answers (above), urgent physical symptoms,
+a baby who may be in danger, and medicines. A short "yes", "no"
 or number right after the AI spoke goes back to the AI, because it answers the AI's question.
 
 **Safety, in layers.**
@@ -341,6 +374,8 @@ lists what must be fixed, what is risky and what is fine, without printing a sec
 - `ASSISTANT_DAILY_BUDGET_USD`, **and** a spend limit in the Anthropic console
 - `public/privacy.html` and `public/terms.html` finished: every highlighted `[[...]]` filled in,
   and read by someone qualified. The launch check fails until it is
+- Every sourced health answer in `public/js/knowledge.js` read and signed by a clinician. The
+  launch check fails until it is
 - Exactly **one** running copy: the rate limits and the AI budget live in the memory of one process
 - A host health check on `GET /healthz` (200 when the app and its database are up, else 503)
 

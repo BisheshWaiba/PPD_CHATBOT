@@ -40,7 +40,8 @@ const goodDeps = () => ({
   skipNetwork: false,
   connectDatabase: async () => ({ ok: true }),
   verifyMail: async () => ({ ok: true }),
-  readPublicPage: () => '<html><body>finished</body></html>'
+  readPublicPage: () => '<html><body>finished</body></html>',
+  knowledgeEntries: [{ id: 'what-is-ppd', signed: true }, { id: 'baby-blues', signed: true }]
 });
 
 const run = (envChanges = {}, depsChanges = {}) => {
@@ -136,6 +137,25 @@ test('a policy page with unfilled markers, or one that is missing, blocks the la
   assert.match(missing.detail, /The terms \(public\/terms\.html\) is missing/);
 });
 
+test('health answers that no clinician has signed block the launch and are named; signed ones do not', async () => {
+  const unsigned = find(await run({}, { knowledgeEntries: [{ id: 'what-is-ppd', signed: false }, { id: 'baby-blues', signed: true }, { id: 'lochia', signed: false }] }), /sourced health answers have not been reviewed/);
+  assert.equal(unsigned.level, 'fail');
+  assert.match(unsigned.title, /^2 of 3 /);
+  assert.match(unsigned.detail, /Not yet signed: what-is-ppd, lochia\./);
+  assert.ok(!/baby-blues/.test(unsigned.detail), 'a signed answer is not blamed');
+  assert.match(unsigned.detail, /review:pack/);
+
+  const signed = await run();
+  assert.equal(find(signed, /sourced health answers have been signed/).level, 'ok');
+  assert.equal(levels(signed).fail, 0);
+  assert.equal(find(signed, /health answers are in English only/).level, 'info', 'and the Nepali gap is always mentioned');
+});
+
+test('with no list of health answers given, the check says nothing rather than guess', async () => {
+  const results = await run({}, { knowledgeEntries: undefined });
+  assert.equal(find(results, /health answers/), undefined);
+});
+
 test('with the AI off, nothing about the AI is demanded', async () => {
   const results = await run({ ANTHROPIC_API_KEY: undefined, ASSISTANT_DAILY_BUDGET_USD: undefined });
   assert.equal(levels(results).warn, 0);
@@ -161,6 +181,8 @@ test('no secret ever appears in the results, whatever is wrong', async () => {
 // --- The command, run for real ---------------------------------------------------------------------
 
 const realMarkers = ['privacy.html', 'terms.html'].reduce((total, file) => total + (fs.readFileSync(path.join(root, 'public', file), 'utf8').match(/\[\[[^\]]*\]\]/g) || []).length, 0);
+const { ENTRIES, isSignedOff } = await import('../public/js/knowledge.js');
+const unsignedAnswers = ENTRIES.filter(entry => !isSignedOff(entry)).length;
 
 function runCli(args, env = {}) {
   return new Promise(resolve => {
@@ -199,18 +221,15 @@ test('the command reads a settings file, groups what it finds, exits 1 when some
   }
 });
 
-test('the shipped privacy policy and terms count against launch for as long as they have unfilled markers', async () => {
+test('the shipped privacy policy, terms and health answers count against launch for as long as they are unfinished or unsigned', async () => {
   const { file, cleanup } = envFile(goodEnv());
   try {
     const { code, out } = await runCli(['--skip-network', '--env', file]);
-    if (realMarkers > 0) {
-      assert.equal(code, 1);
-      assert.match(out, /FIX\s+The privacy policy and terms are not finished/);
-      assert.match(out, /1 to fix/);
-    } else {
-      assert.equal(code, 0, out);
-      assert.match(out, /0 to fix/);
-    }
+    const toFix = (realMarkers > 0 ? 1 : 0) + (unsignedAnswers > 0 ? 1 : 0);
+    assert.equal(code, toFix > 0 ? 1 : 0, out);
+    assert.match(out, new RegExp(`\\b${toFix} to fix`));
+    if (realMarkers > 0) assert.match(out, /FIX\s+The privacy policy and terms are not finished/);
+    if (unsignedAnswers > 0) assert.match(out, new RegExp(`FIX\\s+${unsignedAnswers} of ${ENTRIES.length} sourced health answers have not been reviewed`));
     for (const [name, secret] of Object.entries(SECRETS)) assert.ok(!out.includes(secret), `${name} was printed`);
   } finally {
     cleanup();
